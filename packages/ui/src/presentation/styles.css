@@ -1,0 +1,71 @@
+:root {
+  font-family: "Google Sans", "Segoe UI", sans-serif;
+  background: #f7f7f5;
+  color-scheme: light;
+  --garage-space-1: 4px;
+  --garage-space-2: 8px;
+  --garage-space-3: 12px;
+  --garage-space-4: 16px;
+  --garage-space-5: 20px;
+  --garage-space-6: 24px;
+  --garage-space-8: 32px;
+  --garage-space-10: 40px;
+  --garage-space-12: 48px;
+  --garage-space-16: 64px;
+  --garage-space-20: 80px;
+  --garage-space-24: 96px;
+  --garage-space-32: 128px;
+  --garage-content-width: 1320px;
+  --garage-display-xl: 104px;
+  --garage-display-lg: 72px;
+  --garage-display-md: 56px;
+  --garage-display-sm: 40px;
+  --garage-duration: 200ms;
+  --garage-ease: cubic-bezier(0.33, 0, 0.2, 1);
+}
+
+:root[data-theme="dark"] { background: #171916; color-scheme: dark; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) { background: #171916; color-scheme: dark; }
+}
+
+.garage-root,
+.garage-area {
+  --garage-page: var(--colorNeutralBackground2);
+  --garage-surface: var(--colorNeutralBackground1);
+  --garage-inset: var(--colorNeutralBackground3);
+  --garage-ink: var(--colorNeutralForeground1);
+  --garage-muted: var(--colorNeutralForeground2);
+  --garage-faint: var(--colorNeutralForeground3);
+  --garage-line: var(--colorNeutralStroke2);
+  --garage-control-line: var(--colorNeutralStroke1);
+  --garage-accent: var(--colorBrandForeground1);
+}
+
+.garage-root {
+  --garage-blue: #0f6cbd;
+  --garage-on-blue: #ffffff;
+  --garage-hero-blue: #c0def6;
+  --garage-header-height: 100px;
+  background: var(--garage-page);
+  color: var(--garage-ink);
+  min-height: 100vh;
+}
+
+@media (max-width: 1100px) {
+  :root { --garage-display-xl: 80px; --garage-display-lg: 60px; --garage-display-md: 48px; }
+}
+
+@media (max-width: 700px) {
+  :root { --garage-display-xl: 56px; --garage-display-lg: 44px; --garage-display-md: 36px; --garage-display-sm: 32px; }
+  .garage-root { --garage-header-height: 132px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

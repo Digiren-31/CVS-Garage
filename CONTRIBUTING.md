@@ -7,8 +7,9 @@ instructions. Every application/service team owns its own source, tests, and
 documentation. The portal maintainer owns central portal publication; the
 backend team owns backend and database delivery.
 
-This phase is structure only. Do not add a framework, package manager, UI,
-database, or deployment configuration until that implementation work is agreed.
+Implementation maturity differs by area. Follow the affected area's README and
+instructions; do not introduce a new framework, package manager, database, or
+deployment model without an explicit task and owner coordination.
 
 ## Branch and pull request workflow
 
@@ -49,13 +50,11 @@ See [docs/architecture.md](docs/architecture.md) for rationale and deferred deci
 
 ## Validation
 
-For this structure-only phase, check folder placement, documentation links, and
-ownership/instruction scopes. There are no application builds or tests yet;
-state that accurately in the pull request.
-
-When implementation starts, each team must document its setup and local checks.
-Validate shared changes against affected services and the portal once tooling
-exists. Do not introduce placeholder scripts that report success without checks.
+For scaffold-only areas, check folder placement, documentation links, and
+instruction scopes. For implemented areas, run the commands in the local README.
+Backend database changes require migration, integrity, and affected test checks.
+Validate shared changes against affected consumers and do not introduce scripts
+that report success without performing a real check.
 
 ## Repository administrator setup
 

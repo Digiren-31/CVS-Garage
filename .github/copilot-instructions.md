@@ -2,13 +2,14 @@
 
 ## Current scope
 
-- This is a framework-neutral college portal monorepo at the directory-only stage.
+- This is a college portal monorepo with a modular Express backend, a local SQLite
+  schema, a Forum implementation, and frontend areas at different maturity levels.
 - Preserve the central portal, six service areas, backend/database handoff, and
   shared working areas listed in [../README.md](../README.md).
 - Treat [../docs/ui-guidelines.md](../docs/ui-guidelines.md) as the design
   contract for every portal and service frontend.
-- Do not add UI, routes, application logic, dependencies, or deployment setup
-  unless a later request explicitly starts that implementation work.
+- Add implementation only when a request starts that work and follow the affected
+  area's current architecture and ownership instructions.
 
 ## Working rules
 
@@ -32,22 +33,21 @@
 
 ## Validation
 
-- There are no install, build, test, debug, or launch commands yet.
-- For scaffold edits, verify directory placement, local links, and instruction
-  scopes. Never report application checks as passing when no application exists.
-- Add actual setup/validation commands and update these instructions when the
-  stack is selected. Do not add fake-success scripts or unnecessary extensions.
+- Backend database changes run `npm run db:migrate`, `npm run db:check`, and
+  affected tests from `backend`. Forum tests use `npm test` there.
+- Frontend areas without selected tooling still use scaffold validation only.
+- Report only checks actually run; do not add fake-success scripts.
 
 ## Initial setup checklist
 
 - [x] Verify repository instructions — created and customized for this repository.
-- [x] Clarify requirements — central portal, six services, separate backend ownership; structure only.
+- [x] Clarify requirements — central portal, six services, and separate backend ownership.
 - [x] Scaffold project — landing pages, local instructions, and working directories created.
 - [x] Customize project — contribution rules, ownership template, and scoped editor instructions added.
 - [x] Install required extensions — skipped; none required for a directory scaffold.
-- [x] Compile project — skipped; no application code or dependencies exist.
-- [x] Create and run task — skipped; no runnable application or build task exists.
+- [x] Compile project — backend schema validated with SQLite; no shared frontend build exists.
+- [x] Create and run task — backend commands documented; frontend tasks remain area-specific.
 - [x] Define UI direction — Fluent UI, area themes, typography, modes, motion,
   and accessibility documented; implementation remains deferred.
-- [x] Launch project — skipped; application implementation belongs to a later phase.
+- [x] Launch project — backend launch documented; local Node installation is required.
 - [x] Complete documentation — working folders, local links, instruction scopes, formatting, and diagnostics verified.

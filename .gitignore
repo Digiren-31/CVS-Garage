@@ -13,6 +13,12 @@ coverage/
 *.tsbuildinfo
 *.log
 
+# Local databases are runtime state, not source artifacts.
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+backend/.data/
+
 # Local editor and operating-system files.
 .idea/
 .vscode/*

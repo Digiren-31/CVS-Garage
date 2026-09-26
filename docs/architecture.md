@@ -4,8 +4,9 @@
 
 Use one repository with a central portal and six domain/team working areas.
 Directory separation allows teams to contribute independently while keeping
-shared decisions visible. This scaffold selects no runtime, build system,
-frontend framework, database, or hosting provider.
+shared decisions visible. Frontend and hosting choices remain area-specific. The
+backend is a modular Express deployable with SQLite for local persistence and a
+documented path to managed PostgreSQL.
 
 Here, **service** means a frontend/product ownership area, not a deployed
 microservice. The backend team is free to choose backend service boundaries.
@@ -59,7 +60,10 @@ The backend team owns [../backend/README.md](../backend/README.md). Backend and
 affected frontend teams agree interfaces through
 [../packages/contracts/README.md](../packages/contracts/README.md).
 
-No endpoints, role names, session strategy, or database schema have been chosen.
+The backend common data model and role baseline are documented in
+[the common data model](../backend/database/design/00-common-data-model.md). The
+executable schema is versioned under `backend/database/migrations`. API DTOs and
+complete session behavior still require agreement through shared contracts.
 Browser code must not directly access databases or contain privileged secrets.
 Member Centre admin controls require server-enforced permissions, not just hidden UI.
 
@@ -80,7 +84,8 @@ GitHub permission settings are configured by these folders.
 - UI implementation details, homepage, routes, navigation, and service
   integration/loading. The repository-wide visual direction is already defined.
 - Features beyond the six named areas.
-- Backend/database technology, APIs, identity, and access rules.
+- API DTOs, complete identity/session implementation, and production database hosting.
 - Test tooling, CI, hosting, and release controls.
 
-No install, run, debug, build, or deployment commands exist in this phase.
+Backend commands are documented in its README. No repository-wide build or
+deployment command exists yet.

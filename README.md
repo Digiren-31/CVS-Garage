@@ -1,8 +1,8 @@
 # CVS Garage — College Portal
 
-A framework-neutral monorepo for one central college portal and six service
-teams. **Current stage: folders and instructions only.** There is no application
-code, UI, navigation, backend, database, or deployment yet.
+A monorepo for one central college portal and six service teams. The backend now
+has an Express Forum module and a common local SQLite schema; frontend areas are
+at different implementation stages. There is no shared deployment setup yet.
 
 ## Working folders
 
@@ -52,6 +52,7 @@ per-team write or visibility isolation is required.
 
 ## Run and build status
 
-There is nothing to install, run, debug, build, or deploy in this phase. Runtime
-commands and CI will be documented when the stack is chosen. The UI direction is
-documented, while components, homepage, and navigation remain future work.
+Backend setup and validation commands are documented in
+[backend/README.md](backend/README.md). Other areas must document their own
+commands as implementation begins. The UI direction is documented, while the
+central homepage and navigation remain future work.

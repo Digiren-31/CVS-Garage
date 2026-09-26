@@ -1,0 +1,27 @@
+{
+  "name": "cvs-garage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13.0" },
+  "workspaces": ["apps/*", "packages/*", "services/*", "backend"],
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run typecheck && npm run build --workspace @cvs-garage/portal",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test --workspace @cvs-garage/backend && npm run test --workspace @cvs-garage/forum-service && node --test packages/ui/tests/*.test.js && node scripts/check-boundaries.mjs",
+    "test:e2e": "playwright test",
+    "db:migrate": "npm run db:migrate --workspace @cvs-garage/backend",
+    "db:check": "npm run db:check --workspace @cvs-garage/backend"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.55.1",
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.3",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
+  }
+}

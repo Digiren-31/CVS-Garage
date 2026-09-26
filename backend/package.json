@@ -4,16 +4,26 @@
   "description": "Central backend server for CVS Garage platform modules",
   "main": "src/server.js",
   "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node tests/forum.test.js"
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --env-file-if-exists=.env --watch src/server.js",
+    "test": "node --env-file-if-exists=.env --test tests/*.test.js",
+    "db:migrate": "node --env-file-if-exists=.env src/database/migrate.js",
+    "db:check": "node --env-file-if-exists=.env src/database/check.js"
   },
   "keywords": ["forum", "college-portal", "backend"],
   "author": "CVS Garage Team",
   "license": "ISC",
   "dependencies": {
+    "@cvs-garage/contracts": "*",
+    "@node-rs/argon2": "^2.0.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "uuid": "^13.0.0"
   }
 }

@@ -1,22 +1,39 @@
 # Backend and Database
 
 **Intended owner:** backend team; actual GitHub owners are not assigned yet.
-**Status:** working folders only; no backend or database is implemented.
+**Status:** Express Forum backend present; common SQLite schema established.
 
-This is the backend team's landing area. The team chooses its own stack and
-owns APIs, server-side authentication/authorization, database work, and backend
-delivery. Six frontend service areas do not mandate six backend microservices.
+This is one modular backend deployable. The backend team owns APIs, server-side
+authentication/authorization, database work, and delivery. The six frontend
+service areas are domain ownership boundaries, not six backend microservices.
 
 ## Start here
 
 1. Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-2. Use the source directory, reserved by [src/.gitkeep](src/.gitkeep), for future backend implementation.
-3. Use the test directory, reserved by [tests/.gitkeep](tests/.gitkeep), for future backend tests.
-4. Read [database/README.md](database/README.md) for the database working area.
+2. Read the [common data model](database/design/00-common-data-model.md).
+3. Read [database/README.md](database/README.md) for migrations and recovery.
+4. Install Node.js 22.13 or newer and run from this directory:
+
+```powershell
+npm install
+Copy-Item .env.example .env
+npm run db:migrate
+npm run db:check
+npm test
+npm start
+```
+
+The API listens on `http://localhost:4000` by default. The local database file is
+`.data/cvs-garage.sqlite` and must never be committed.
 
 Agree frontend interfaces through
-[../packages/contracts/README.md](../packages/contracts/README.md).
-No dependencies, setup commands, or deployment configuration exist yet.
+[../packages/contracts/README.md](../packages/contracts/README.md). Database rows
+are internal models, not request or response DTOs.
+
+The Forum module currently uses an in-memory store and mock adapters. Its API and
+tests remain the behavioral baseline while database repositories and real Member
+Centre authorization are implemented. Do not bypass that transition by querying
+SQLite directly from controllers.
 
 If the backend team later chooses a separate repository, retain this folder for
 handoff documentation and agree how contracts stay synchronized. No external

@@ -4,6 +4,17 @@
   "description": "Forum and Discussions Service for CVS Garage College Innovation Platform",
   "main": "src/app.js",
   "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@cvs-garage/api-client": "*",
+    "@cvs-garage/contracts": "*",
+    "@cvs-garage/ui": "*",
+    "@fluentui/react-components": "^9.70.0",
+    "@fluentui/react-icons": "^2.0.310",
+    "@tanstack/react-query": "^5.89.0",
+    "react": "^19.1.1",
+    "react-router-dom": "^7.9.1"
+  },
   "scripts": {
     "dev": "node dev-server.js",
     "start": "node dev-server.js",

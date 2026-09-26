@@ -1,0 +1,5 @@
+{
+  "name": "@cvs-garage/member-centre", "version": "0.1.0", "private": true, "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@cvs-garage/ui": "*", "@cvs-garage/api-client": "*", "@cvs-garage/contracts": "*", "@fluentui/react-components": "^9.70.0", "@fluentui/react-icons": "^2.0.310", "@tanstack/react-query": "^5.89.0", "react": "^19.1.1", "react-router-dom": "^7.9.1" }
+}

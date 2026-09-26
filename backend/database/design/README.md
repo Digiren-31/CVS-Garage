@@ -1,14 +1,15 @@
-# Member Centre — Design Documents
+# Backend data design documents
 
-**Status:** proposed design, pending backend-team and Member Centre-team review.
+**Status:** common model accepted; detailed Member Centre documents remain inputs.
 **Owner:** backend team.
 
-Design-stage documents for the Member Management Service. The repository is at
-the structure-only phase, so these are specifications, not implementation: no
-database engine is selected, no migrations exist, and no dependencies are added.
+The common model reconciles requirements from all six service areas into the
+versioned local SQLite schema. Detailed Member Centre documents preserve the
+requirements and rationale used to build that model.
 
 | Document | Covers |
 | --- | --- |
+| [00 — Common data model](00-common-data-model.md) | Accepted cross-application model, ownership, invariants, operations, migration path |
 | [01 — Database schema](01-member-centre-schema.md) | Entities, fields, types, relations, indexes |
 | [02 — Role strategy](02-member-centre-role-strategy.md) | RBAC model, Student → Mentor promotion, eligibility rules |
 | [03 — API architecture](03-member-centre-api.md) | REST surface for auth, profile, admin portal, promotion |
@@ -27,17 +28,18 @@ The Member Centre service area at
 [services/member-centre](../../../services/member-centre/README.md) owns the
 admin portal and profile frontends that consume the API in document 03.
 
-## Before implementation begins
+## Implementation order
 
-1. Agree the API shapes through
+1. Apply and validate the SQLite migrations from `backend`.
+2. Agree the API shapes through
    [packages/contracts](../../../packages/contracts/README.md). The contracts
    instructions require that endpoints and role names are not invented
    independently per service.
-2. Agree role names and permissions with the Member Centre team, as that area's
-   instructions require.
-3. Select the database engine and migration tooling, then document validation
-   and rollback procedures per [database/README.md](../README.md).
-4. Settle the open questions listed at the end of each document. The largest is
+3. Implement Member Centre identity and authorization repositories first.
+4. Migrate Forum behind repositories while preserving its existing tests.
+5. Implement Projects, Events, Idea Centre, and Leaderboards through their
+   domain repositories and transactional integration events.
+6. Settle the open questions listed at the end of each detailed document. The largest is
    the source of mentor eligibility metrics, which crosses into the Projects,
    Events, and Leaderboards areas.
 
