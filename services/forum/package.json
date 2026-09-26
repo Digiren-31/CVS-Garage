@@ -1,0 +1,15 @@
+{
+  "name": "@cvs-garage/forum-service",
+  "version": "1.0.0",
+  "description": "Forum and Discussions Service for CVS Garage College Innovation Platform",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "start": "node dev-server.js",
+    "test": "node tests/forum-ui.test.js"
+  },
+  "keywords": ["forum", "college-portal", "discussions", "orange-theme"],
+  "author": "CVS Garage Team",
+  "license": "ISC"
+}

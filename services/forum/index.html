@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="CVS Garage Forum — Central communication, Q&A, and technical discussion layer for the college innovation ecosystem." />
+  <title>Forum & Discussions — CVS Garage</title>
+
+  <!-- Google Sans / Plus Jakarta Sans Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Core Theme & Forum Styles -->
+  <link rel="stylesheet" href="src/styles/theme.css" />
+  <link rel="stylesheet" href="src/styles/forum.css" />
+</head>
+<body>
+
+  <!-- Top App Navigation Bar -->
+  <header class="app-header">
+    <div class="header-inner">
+      <!-- Brand Logo -->
+      <div class="brand-section">
+        <a href="#" style="display:flex;align-items:center;gap:0.75rem;text-decoration:none;">
+          <div class="brand-logo">C</div>
+          <div class="brand-text">
+            <span class="brand-title">CVS Garage</span>
+            <span class="brand-badge">Forum & Discussions</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Global Search -->
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="search" 
+          id="global-search" 
+          class="search-input" 
+          placeholder="Search questions, projects, tags, or mentors..." 
+          autocomplete="off"
+        />
+      </div>
+
+      <!-- User Actions & Identity Simulator -->
+      <div class="header-actions">
+        <!-- Identity Selector (For pairing and testing RBAC as Student, Mentor, Admin) -->
+        <div class="role-simulator" title="Simulate different platform roles">
+          <label for="role-switcher-select">Role:</label>
+          <select id="role-switcher-select" class="role-select">
+            <option value="mem-student-1">Rahul Sharma (Student)</option>
+          </select>
+        </div>
+
+        <!-- Dark/Light Theme Toggle -->
+        <button id="theme-toggle-btn" class="btn-icon" title="Toggle Dark/Light Mode">
+          🌓
+        </button>
+
+        <!-- New Post Action -->
+        <button class="btn-primary" onclick="app.navigateTo('new')">
+          <span>+</span>
+          <span>New Discussion</span>
+        </button>
+
+        <!-- Current User Avatar -->
+        <img id="header-avatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80" class="author-avatar" style="width:34px;height:34px;" alt="Profile" />
+      </div>
+    </div>
+  </header>
+
+  <!-- 3-Column Main Shell -->
+  <div class="main-wrapper">
+    <!-- Left Navigation Sidebar -->
+    <aside class="sidebar-nav">
+      <div class="nav-card">
+        <div class="nav-heading">Ecosystem Feed</div>
+        <ul class="nav-list">
+          <li>
+            <button id="nav-feed-btn" class="nav-item-btn active" onclick="app.setFeedFilter('all'); app.navigateTo('');">
+              <span>💬</span>
+              <span>All Discussions</span>
+            </button>
+          </li>
+          <li>
+            <button id="nav-communities-btn" class="nav-item-btn" onclick="app.navigateTo('communities')">
+              <span>🏛️</span>
+              <span>Communities</span>
+            </button>
+          </li>
+          <li>
+            <button id="nav-mentors-btn" class="nav-item-btn" onclick="app.navigateTo('mentors')">
+              <span>🎓</span>
+              <span>Discover Mentors</span>
+            </button>
+          </li>
+          <li>
+            <button id="nav-bookmarks-btn" class="nav-item-btn" onclick="app.navigateTo('bookmarks')">
+              <span>🔖</span>
+              <span>Saved Discussions</span>
+            </button>
+          </li>
+          <li>
+            <button id="nav-moderation-btn" class="nav-item-btn" onclick="app.navigateTo('moderation')">
+              <span>🛡️</span>
+              <span>Moderator Queue</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <div class="nav-card">
+        <div class="nav-heading">My Communities</div>
+        <ul class="nav-list" id="nav-communities-list">
+          <li style="padding:0.5rem 0.75rem;font-size:0.8rem;color:var(--text-muted);">Loading groups...</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Center Main Content -->
+    <main id="content-area">
+      <div style="padding:4rem;text-align:center;color:var(--text-muted);">
+        Loading Forum feed...
+      </div>
+    </main>
+
+    <!-- Right Information & Discovery Panel -->
+    <aside class="sidebar-info">
+      <!-- Trending Tags Widget -->
+      <div class="widget-card">
+        <div class="widget-title">
+          <span>🏷️</span>
+          <span>Popular Topics</span>
+        </div>
+        <div class="tags-row" id="sidebar-tags-list">
+          <span style="font-size:0.8rem;color:var(--text-muted);">Loading tags...</span>
+        </div>
+      </div>
+
+      <!-- Top Mentors Widget -->
+      <div class="widget-card">
+        <div class="widget-title">
+          <span>👨‍🏫</span>
+          <span>Available Mentors</span>
+        </div>
+        <div id="sidebar-mentors-list">
+          <span style="font-size:0.8rem;color:var(--text-muted);">Loading mentors...</span>
+        </div>
+        <button class="btn-secondary" style="width:100%;margin-top:0.75rem;font-size:0.75rem;justify-content:center;" onclick="app.navigateTo('mentors')">
+          Explore All Mentors →
+        </button>
+      </div>
+
+      <!-- Campus Innovation Integration Guidelines -->
+      <div class="widget-card" style="background:linear-gradient(180deg, var(--bg-surface), var(--primary-50));border-color:var(--primary-200);">
+        <div class="widget-title" style="color:var(--primary-700);">
+          <span>💡</span>
+          <span>Innovation Flow</span>
+        </div>
+        <p style="font-size:0.8rem;line-height:1.45;color:var(--text-secondary);margin-bottom:0.75rem;">
+          Great questions solve bugs. Great discussions become <strong>Idea Centre</strong> submissions, which become funded <strong>Projects</strong>, participate in <strong>Events</strong>, and earn <strong>Leaderboard</strong> points!
+        </p>
+        <div style="font-size:0.72rem;font-weight:700;color:var(--primary-700);">
+          Ask → Discuss → Solve → Export to Idea
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Global Modal Mount Point -->
+  <div id="global-modal-container"></div>
+
+  <!-- Global Toast Alerts Mount Point -->
+  <div id="toast-container" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;"></div>
+
+  <!-- Application Bootstrap -->
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

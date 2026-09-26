@@ -1,0 +1,19 @@
+{
+  "name": "@cvs-garage/backend",
+  "version": "1.0.0",
+  "description": "Central backend server for CVS Garage platform modules",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node tests/forum.test.js"
+  },
+  "keywords": ["forum", "college-portal", "backend"],
+  "author": "CVS Garage Team",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
