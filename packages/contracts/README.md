@@ -10,3 +10,6 @@ language is required by this layout.
 Read [INSTRUCTIONS.md](INSTRUCTIONS.md) before adding contracts. Endpoint shapes,
 role names, authentication/session behavior, and compatibility policies remain
 open decisions. This folder contains no executable code or validation tooling yet.
+
+- Future schema/interface definitions: [src/.gitkeep](src/.gitkeep).
+- Future contract validation checks: [tests/.gitkeep](tests/.gitkeep).
