@@ -34,6 +34,9 @@ branch divergence. Branch names do not enforce path-based permissions.
 - Agree a public interface before integrating a service into the portal.
 - Coordinate shared UI/transport changes with affected consumers; domain logic
   stays with its service rather than moving into shared packages.
+- Follow [docs/ui-guidelines.md](docs/ui-guidelines.md) for all portal and service
+  UI. Coordinate shared themes, tokens, and reusable primitives through
+  `packages/ui` rather than creating incompatible local design systems.
 - Agree API changes with the backend team through
   [packages/contracts/INSTRUCTIONS.md](packages/contracts/INSTRUCTIONS.md).
 - Leave database access and privileged logic on the backend. Frontend visibility

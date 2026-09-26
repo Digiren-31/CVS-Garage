@@ -9,9 +9,10 @@ services. Only the portal maintainer publishes the central portal.
 ## Start here
 
 1. Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-2. Place future portal implementation in the source directory, reserved by
+2. Follow the repository [UI and theme guidelines](../../docs/ui-guidelines.md).
+3. Place future portal implementation in the source directory, reserved by
    [src/.gitkeep](src/.gitkeep).
-3. Place future portal/integration tests in the test directory, reserved by
+4. Place future portal/integration tests in the test directory, reserved by
    [tests/.gitkeep](tests/.gitkeep).
 
 No UI, routes, service integration, dependencies, or run/build commands have been

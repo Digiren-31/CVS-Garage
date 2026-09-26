@@ -1,6 +1,8 @@
 # Idea Centre Working Instructions
 
 - Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
+- Follow [../../docs/ui-guidelines.md](../../docs/ui-guidelines.md), including
+  the Idea Centre color identity and shared theme behavior.
 - Own the Idea Centre frontend, its local tests, and service documentation.
 - Confirm idea workflows and data requirements before implementing them.
 - Do not import another service's private source or central portal internals.

@@ -1,6 +1,8 @@
 # Member Centre Working Instructions
 
 - Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
+- Follow [../../docs/ui-guidelines.md](../../docs/ui-guidelines.md), including
+  the Member Centre color identity and shared theme behavior.
 - Own the Member Centre and admin UI, local tests, and service documentation.
 - Agree member workflows, role names, and permissions before implementation.
 - Authentication and authorization belong to the backend team. Hiding an admin

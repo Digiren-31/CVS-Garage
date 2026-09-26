@@ -29,6 +29,11 @@ in Git by placeholder files. No framework or package manager has been selected.
 - [packages/api-client/README.md](packages/api-client/README.md): future shared API transport.
 - [packages/contracts/README.md](packages/contracts/README.md): frontend/backend interface agreements.
 
+All frontend areas follow [docs/ui-guidelines.md](docs/ui-guidelines.md). The
+shared design contract selects Fluent UI, Google Sans typography, distinct area
+color identities, light and dark modes, and common accessibility and motion
+standards. Implementation remains deferred until the frontend stack is selected.
+
 ## Collaboration
 
 Teams work in their area on short-lived branches and open pull requests into
@@ -48,5 +53,5 @@ per-team write or visibility isolation is required.
 ## Run and build status
 
 There is nothing to install, run, debug, build, or deploy in this phase. Runtime
-commands and CI will be documented when the stack is chosen. UI/UX, homepage,
-and navigation remain future work.
+commands and CI will be documented when the stack is chosen. The UI direction is
+documented, while components, homepage, and navigation remain future work.

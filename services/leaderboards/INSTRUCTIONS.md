@@ -1,6 +1,8 @@
 # Leaderboards Working Instructions
 
 - Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
+- Follow [../../docs/ui-guidelines.md](../../docs/ui-guidelines.md), including
+  the Leaderboards color identity and shared theme behavior.
 - Own the Leaderboards frontend, local tests, and service documentation.
 - Agree ranking criteria, scoring rules, and data sources with stakeholders and
   the backend team; do not invent authoritative scores in the browser.

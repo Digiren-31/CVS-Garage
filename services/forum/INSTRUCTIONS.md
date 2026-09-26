@@ -1,6 +1,8 @@
 # Forum and Discussions Working Instructions
 
 - Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
+- Follow [../../docs/ui-guidelines.md](../../docs/ui-guidelines.md), including
+  the Forum and Discussions color identity and shared theme behavior.
 - Own the discussion frontend, its local tests, and service documentation.
 - Confirm discussion workflows and data requirements before implementation.
 - Treat user-generated content as untrusted; rendering and server-side access

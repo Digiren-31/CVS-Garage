@@ -1,7 +1,9 @@
 # Service Team Working Areas
 
 Each service has its own landing page, local instructions, source directory,
-and test directory. Start with the team's landing page:
+and test directory. Every service frontend follows the repository
+[UI and theme guidelines](../docs/ui-guidelines.md), including its assigned
+color identity. Start with the team's landing page:
 
 | Service | Landing page | Instructions |
 | --- | --- | --- |

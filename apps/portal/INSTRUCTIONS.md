@@ -1,6 +1,8 @@
 # Central Portal Working Instructions
 
 - Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
+- Follow [../../docs/ui-guidelines.md](../../docs/ui-guidelines.md) for Fluent UI,
+  the portal color identity, typography, light/dark modes, motion, and accessibility.
 - Own the homepage, application shell, global navigation, and central publication
   when implementation is requested. Do not implement these in the structure phase.
 - Coordinate the frontend stack and service integration interfaces before adding

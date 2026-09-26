@@ -1,6 +1,8 @@
 # Events Working Instructions
 
 - Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
+- Follow [../../docs/ui-guidelines.md](../../docs/ui-guidelines.md), including
+  the Events color identity and shared theme behavior.
 - Own the Events frontend, its local tests, and service documentation.
 - Confirm event workflows and data requirements before implementing them.
 - Do not import another service's private source or central portal internals.

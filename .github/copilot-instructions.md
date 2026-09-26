@@ -5,6 +5,8 @@
 - This is a framework-neutral college portal monorepo at the directory-only stage.
 - Preserve the central portal, six service areas, backend/database handoff, and
   shared working areas listed in [../README.md](../README.md).
+- Treat [../docs/ui-guidelines.md](../docs/ui-guidelines.md) as the design
+  contract for every portal and service frontend.
 - Do not add UI, routes, application logic, dependencies, or deployment setup
   unless a later request explicitly starts that implementation work.
 
@@ -16,6 +18,9 @@
   cross-area changes with the affected owners.
 - The portal maintainer owns central navigation and publication. Service teams
   own domain frontends; the backend team owns APIs, access control, and databases.
+- Use Fluent UI, the assigned area identity, Google Sans typography, and shared
+  light/dark theme behavior for frontend implementation. Coordinate shared
+  tokens and primitives through `packages/ui`.
 - Do not import private code from other services or portal internals. Follow
   [../docs/architecture.md](../docs/architecture.md) for dependency direction.
 - Never commit secrets or real student data, and never place privileged server
@@ -42,5 +47,7 @@
 - [x] Install required extensions — skipped; none required for a directory scaffold.
 - [x] Compile project — skipped; no application code or dependencies exist.
 - [x] Create and run task — skipped; no runnable application or build task exists.
-- [x] Launch project — skipped; UI/UX and navigation belong to a later phase.
+- [x] Define UI direction — Fluent UI, area themes, typography, modes, motion,
+  and accessibility documented; implementation remains deferred.
+- [x] Launch project — skipped; application implementation belongs to a later phase.
 - [x] Complete documentation — working folders, local links, instruction scopes, formatting, and diagnostics verified.

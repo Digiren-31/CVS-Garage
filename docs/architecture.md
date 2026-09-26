@@ -40,6 +40,19 @@ If separate service deployments are needed later, agree URL, authentication,
 interface, and release contracts before selecting that integration model. No
 route or loading strategy is assumed by the current folders.
 
+## Decision: shared UI foundation
+
+All portal and service frontends follow the central
+[UI and theme guidelines](ui-guidelines.md). Fluent UI is the shared component
+and token system, while `packages/ui` will own repository semantic tokens, theme
+creation, typography, and reusable presentation primitives. Each frontend owns
+its screens and selects its assigned area identity without changing shared token
+meanings.
+
+This decision does not add a runtime or settle the frontend framework. Fluent
+package selection, versions, font assets, theme code, and visual test tooling are
+added only when frontend implementation begins.
+
 ## Backend collaboration
 
 The backend team owns [../backend/README.md](../backend/README.md). Backend and
@@ -64,7 +77,8 @@ GitHub permission settings are configured by these folders.
 ## Deferred decisions
 
 - Frontend language, framework, package manager, and workspace tooling.
-- UI/UX, homepage, routes, navigation, and service integration/loading.
+- UI implementation details, homepage, routes, navigation, and service
+	integration/loading. The repository-wide visual direction is already defined.
 - Features beyond the six named areas.
 - Backend/database technology, APIs, identity, and access rules.
 - Test tooling, CI, hosting, and release controls.
