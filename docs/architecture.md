@@ -78,7 +78,7 @@ GitHub permission settings are configured by these folders.
 
 - Frontend language, framework, package manager, and workspace tooling.
 - UI implementation details, homepage, routes, navigation, and service
-	integration/loading. The repository-wide visual direction is already defined.
+  integration/loading. The repository-wide visual direction is already defined.
 - Features beyond the six named areas.
 - Backend/database technology, APIs, identity, and access rules.
 - Test tooling, CI, hosting, and release controls.
