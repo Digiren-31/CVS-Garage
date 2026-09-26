@@ -1,0 +1,28 @@
+# INACTIVE TEMPLATE: all rules are commented until real owners are assigned.
+# Replace every placeholder with a real user or visible organization team with
+# explicit repository write access, then uncomment the relevant lines.
+# These rules route reviews; they do not grant access or restrict folder pushes.
+# Enable required code-owner reviews in GitHub settings to protect main.
+# Last matching pattern wins. Multiple owners on one line mean ANY may approve.
+
+# Fallback and central portal: assign the portal maintainer.
+# * @PORTAL-MAINTAINER
+# /apps/portal/ @PORTAL-MAINTAINER
+
+# Service owners: use real collaborators or @organization/team-slug handles.
+# /services/projects/ @PROJECTS-OWNER
+# /services/events/ @EVENTS-OWNER
+# /services/member-centre/ @MEMBER-CENTRE-OWNER
+# /services/leaderboards/ @LEADERBOARDS-OWNER
+# /services/idea-centre/ @IDEA-CENTRE-OWNER
+# /services/forum/ @FORUM-OWNER
+
+# Backend and shared owners: agree responsibilities before activation.
+# /backend/ @BACKEND-OWNER
+# /packages/ui/ @SHARED-UI-OWNER
+# /packages/api-client/ @API-CLIENT-OWNER
+# /packages/contracts/ @BACKEND-OWNER @FRONTEND-CONTRACT-OWNER
+
+# Keep repository policy and ownership changes under maintainer review.
+# /docs/ @PORTAL-MAINTAINER
+# /.github/ @PORTAL-MAINTAINER

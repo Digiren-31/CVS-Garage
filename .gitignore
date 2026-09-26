@@ -1,0 +1,25 @@
+# Local environment files; examples must contain placeholders, never secrets.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Common generated output if frontend tooling is introduced later.
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+*.tsbuildinfo
+*.log
+
+# Local editor and operating-system files.
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+.DS_Store
+Thumbs.db
+*.swp
