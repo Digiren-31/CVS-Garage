@@ -67,10 +67,22 @@ then validate every semantic token pairing for contrast.
 | Central portal | Campus blue | `#0F6CBD` | dependable and unifying |
 | Projects | Indigo | `#5B5FC7` | structured and inventive |
 | Events | Magenta | `#C239B3` | energetic and social |
-| Member Centre | Teal | `#038387` | supportive and personal |
+| Member Centre | Forest green | `#1E6B3F` | supportive and personal |
 | Leaderboards | Gold | `#A15C00` | achievement and momentum |
 | Idea Centre | Coral | `#D83B01` | creative and optimistic |
 | Forum and Discussions | Cyan | `#007E8C` | conversational and open |
+
+**Pending review:** the Member Centre identity changed from Teal `#038387` to
+Forest green, with an off-white page surface, at the Member Centre team's
+request. The governance section below requires portal-maintainer review for
+identity changes; that review has not yet taken place. The Forest green seed is
+a starting value for ramp generation and contrast validation, not a final
+token — `#1E6B3F` is chosen because it carries a white-text contrast ratio above
+4.5:1 at its base, which a lighter forest green would not.
+
+The off-white surface is an area-level preference and must be expressed through
+the neutral background tokens described in the theme architecture above. It does
+not redefine what those tokens mean, and other areas are unaffected.
 
 Area accents should be visible in primary actions, active navigation, focus
 details, small highlights, and selected states. Keep primary surfaces neutral;
