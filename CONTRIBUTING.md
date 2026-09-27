@@ -2,60 +2,78 @@
 
 ## Pick a working area
 
-Find the team's landing page in [README.md](README.md), then read its local
-instructions. Every application/service team owns its own source, tests, and
-documentation. The portal maintainer owns central portal publication; the
-backend team owns backend and database delivery.
+Find the team landing page in [README.md](README.md), then read its local
+instructions. Each service owns its public frontend entry point and local tests.
+The portal maintainer owns central navigation and publication; the backend team
+owns APIs, authorization, persistence, and database evolution.
 
-This phase is structure only. Do not add a framework, package manager, UI,
-database, or deployment configuration until that implementation work is agreed.
+The selected implementation baseline is React + TypeScript + Vite + Fluent UI
+for the portal and Express for the centralized backend. Do not introduce a
+second frontend framework, private cross-service imports, or a separate backend
+runtime without an agreed architecture change.
+
+## Local setup
+
+```bash
+npm install
+npm run dev
+```
+
+Use synthetic data only. The development identity selector sends `x-user-id`
+to the local API so role-specific workflows can be exercised; it is not a
+production authentication mechanism.
 
 ## Branch and pull request workflow
 
 1. Start from the latest `main` and create a short-lived branch named
-   `<area>/<type>/<description>`, for example `projects/docs/onboarding`.
-2. Work in the team's folder. Coordinate root configuration, shared packages,
-   contracts, or another team's area with their owners before changing them.
+   `<area>/<type>/<description>`, for example `projects/feat/milestone-filters`.
+2. Work in the owning folder. Coordinate root configuration, shared packages,
+   contracts, backend interfaces, or another team's area before changing them.
 3. Push the branch and open a pull request into `main`. Contributors without
-   repository write access can contribute through a fork instead.
-4. Complete the pull request template, describe the validation actually done,
-   and request affected owners' review. Request reviews manually until
-   [.github/CODEOWNERS](.github/CODEOWNERS) is configured with real owners.
-5. Merge after required approvals and any configured checks pass. Do not push
-   directly to `main`; delete the feature branch after merging.
+   repository write access can contribute through a fork.
+4. Complete the pull request template, report the commands actually run, and
+   request affected owners' review. Request reviews manually until CODEOWNERS
+   is configured with real owners.
+5. Merge only after approvals and configured checks pass. Do not push directly
+   to `main`; delete the feature branch after merging.
 
-Do not create permanent branches per service or nested Git repositories. Folder
-boundaries and frequent integration keep teams separated without long-lived
-branch divergence. Branch names do not enforce path-based permissions.
+Do not create permanent branches per service or nested Git repositories.
 
 ## Architectural boundaries
 
+- Import a service only through its public `src/index.ts` entry point.
 - Do not import another service's private source or portal internals.
-- Agree a public interface before integrating a service into the portal.
-- Coordinate shared UI/transport changes with affected consumers; domain logic
-  stays with its service rather than moving into shared packages.
-- Follow [docs/ui-guidelines.md](docs/ui-guidelines.md) for all portal and service
-  UI. Coordinate shared themes, tokens, and reusable primitives through
-  `packages/ui` rather than creating incompatible local design systems.
-- Agree API changes with the backend team through
-  [packages/contracts/INSTRUCTIONS.md](packages/contracts/INSTRUCTIONS.md).
-- Leave database access and privileged logic on the backend. Frontend visibility
-  controls are not authorization.
-- Never commit credentials, production environment files, or real student data.
-  Environment examples must contain placeholders only.
-- Central release credentials and publishing approval belong to the portal maintainer.
+- Agree API changes through `packages/contracts`; keep transport behavior in
+  `packages/api-client`.
+- Keep reusable Fluent UI primitives, semantic tokens, and theme behavior in
+  `packages/ui`. Domain screens remain in their service.
+- Leave ranking formulas, authorization, data mutation, and persistence on the
+  backend. Frontend visibility is not security.
+- Keep production credentials, real student data, local JSON state, and
+  environment files out of Git.
+- Preserve explicit error states. Do not turn backend failures into empty or
+  successful-looking results.
 
-See [docs/architecture.md](docs/architecture.md) for rationale and deferred decisions.
+See [docs/architecture.md](docs/architecture.md) for the selected runtime
+architecture and [docs/ui-guidelines.md](docs/ui-guidelines.md) for UI rules.
 
-## Validation
+## Required validation
 
-For this structure-only phase, check folder placement, documentation links, and
-ownership/instruction scopes. There are no application builds or tests yet;
-state that accurately in the pull request.
+Run the smallest relevant checks while developing. Before requesting review for
+an integrated change, run:
 
-When implementation starts, each team must document its setup and local checks.
-Validate shared changes against affected services and the portal once tooling
-exists. Do not introduce placeholder scripts that report success without checks.
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+Changes to backend routes must also be exercised at runtime or covered with
+Supertest. Frontend changes must include appropriate component behavior tests
+and be inspected in light, dark, and system modes at mobile and desktop widths.
+
+Do not add placeholder scripts that report success without performing a check.
 
 ## Repository administrator setup
 

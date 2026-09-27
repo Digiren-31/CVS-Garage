@@ -13,5 +13,6 @@
 - Agree APIs through [../../packages/contracts/README.md](../../packages/contracts/README.md).
 - Leave backend/database implementation and privileged operations to the backend team.
 - Use branches such as `forum/feat/<description>` and pull requests into `main`.
-- Add local setup and test instructions when tooling is selected. Until then,
-  validate directory placement and documentation without adding application code.
+- Preserve the implemented Forum workflows while using the shared Fluent UI,
+  API client, contracts, and canonical cyan identity in the portal route.
+- Export the route through `src/index.ts` and run portal plus backend validation.

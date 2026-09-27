@@ -1,52 +1,20 @@
-/**
- * CVS Garage — Leaderboard Integration Adapter
- * Owns reputation scoring, rankings, and badge rewards.
- * Follows Rule 6: Leaderboard owns scoring/ranking.
- * Follows Rule 7: Forum sends contribution data to Leaderboard but does not decide ranking formulas.
- */
+import { leaderboardDomainService } from '../modules/leaderboards/leaderboard.service.js';
 
 export class LeaderboardService {
-  constructor() {
-    this.recordedEvents = new Set();
-    this.memberScores = new Map();
-
-    // Pre-populate with seed event IDs
-    this.recordedEvents.add('hash-evt-post-1');
-    this.recordedEvents.add('hash-evt-ans-1');
-    this.recordedEvents.add('hash-evt-post-2');
+  constructor(service = leaderboardDomainService) {
+    this.service = service;
   }
 
   async recordContribution(event) {
-    const { eventId, memberId, contributionType, forumPostId, forumReplyId, value } = event;
+    return this.service.recordContribution(event);
+  }
 
-    // Idempotency check: strictly prevent double-counting
-    if (this.recordedEvents.has(eventId)) {
-      return {
-        success: true,
-        duplicate: true,
-        message: 'Event was already recorded. Skipping to prevent duplicate scoring.'
-      };
-    }
+  async revokeContribution(eventId) {
+    return this.service.revokeContribution(eventId);
+  }
 
-    this.recordedEvents.add(eventId);
-
-    // Track simulated point tally on leaderboard side
-    const currentScore = this.memberScores.get(memberId) || 0;
-    const pointValues = {
-      post: 10,
-      reply: 5,
-      accepted_answer: 25,
-      upvote_received: 2
-    };
-    const points = (pointValues[contributionType] || 5) * (value || 1);
-    this.memberScores.set(memberId, currentScore + points);
-
-    return {
-      success: true,
-      duplicate: false,
-      eventId,
-      recordedAt: new Date().toISOString()
-    };
+  async getLeaderboard() {
+    return this.service.getLeaderboard();
   }
 }
 

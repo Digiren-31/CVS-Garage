@@ -1,23 +1,43 @@
-# Backend and Database
+# Backend and database
 
-**Intended owner:** backend team; actual GitHub owners are not assigned yet.
-**Status:** working folders only; no backend or database is implemented.
+**Owner:** backend team. **Status:** runnable centralized MVP.
 
-This is the backend team's landing area. The team chooses its own stack and
-owns APIs, server-side authentication/authorization, database work, and backend
-delivery. Six frontend service areas do not mandate six backend microservices.
+The backend is an Express modular monolith. It exposes versioned APIs for the
+portal and all six service areas, owns authorization checks and cross-service
+orchestration, and persists local synthetic state as JSON under the ignored
+`data/` directory.
 
-## Start here
+## Commands
 
-1. Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-2. Use the source directory, reserved by [src/.gitkeep](src/.gitkeep), for future backend implementation.
-3. Use the test directory, reserved by [tests/.gitkeep](tests/.gitkeep), for future backend tests.
-4. Read [database/README.md](database/README.md) for the database working area.
+From the repository root:
 
-Agree frontend interfaces through
-[../packages/contracts/README.md](../packages/contracts/README.md).
-No dependencies, setup commands, or deployment configuration exist yet.
+```bash
+npm run dev
+npm test --workspace @cvs-garage/backend
+npm run build --workspace @cvs-garage/backend
+npm run start --workspace @cvs-garage/backend
+```
 
-If the backend team later chooses a separate repository, retain this folder for
-handoff documentation and agree how contracts stay synchronized. No external
-repository or submodule has been configured.
+The API listens on `http://localhost:4000` by default. `GET /health` reports
+module availability. Public APIs are rooted at `/api/v1`.
+
+## Structure
+
+- `src/modules/` — route and domain modules.
+- `src/integrations/` — explicit cross-domain service interfaces.
+- `src/lib/` — response and persistence foundations.
+- `database/` — production-oriented schema proposals and design documents.
+- `tests/` — Node and Supertest tests.
+
+## Local versus production
+
+Local JSON persistence is intentional for a zero-service development experience.
+It uses synthetic data and atomic file replacement, but it is not a production
+database. Before deployment, implement the reviewed PostgreSQL migrations,
+transactional repositories, institutional authentication, rate limiting,
+observability, backups, and recovery procedures without changing public API
+contracts unexpectedly.
+
+Read [INSTRUCTIONS.md](INSTRUCTIONS.md) before changing backend behavior and
+coordinate contract changes through
+[packages/contracts](../packages/contracts/README.md).

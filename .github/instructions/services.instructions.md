@@ -10,4 +10,8 @@ applyTo: "services/**"
   including the service's assigned color identity.
 - Keep changes within that service unless cross-team work is explicitly agreed.
 - Never import another service's private source or portal internals.
-- The current phase is structure only. Do not add runtime code or assume APIs without a new implementation request.
+- Export the service page through `src/index.ts`; the portal consumes only that
+  public entry point.
+- Consume `packages/ui`, `packages/api-client`, and `packages/contracts` rather
+  than creating local transport or design systems.
+- Add focused tests and validate the portal type-check/build after service changes.

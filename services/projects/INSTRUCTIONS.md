@@ -12,5 +12,5 @@
   [../../packages/contracts/README.md](../../packages/contracts/README.md).
 - Leave backend/database implementation and privileged operations to the backend team.
 - Use branches such as `projects/feat/<description>` and pull requests into `main`.
-- Add local setup and test instructions when tooling is selected. Until then,
-  validate directory placement and documentation without adding application code.
+- Export the route through `src/index.ts`, use shared Fluent UI/API contracts,
+  and run portal tests, type-check, and build after changes.

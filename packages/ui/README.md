@@ -1,15 +1,13 @@
 # Shared UI
 
-**Intended owner:** portal maintainer, with service-team input.
-**Status:** structure only.
+`src/` contains the Fluent UI React v9 theme provider and reusable page, card,
+metric, state, panel, and status primitives used by the portal and all service
+frontends.
 
-Reserve this area for common Fluent UI primitives, design tokens, theme
-creation, typography, and mode handling once the frontend stack is agreed.
-Service-specific screens stay with their service. The canonical design contract
-is [../../docs/ui-guidelines.md](../../docs/ui-guidelines.md).
+The provider applies the canonical area identity for the active route and
+supports light, dark, and system modes. Domain-specific compositions remain in
+their service folders.
 
-- Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-- Future source directory: [src/.gitkeep](src/.gitkeep).
-- Future test directory: [tests/.gitkeep](tests/.gitkeep).
-
-No components, styles, package manifest, or commands exist yet.
+Follow [INSTRUCTIONS.md](INSTRUCTIONS.md) and
+[docs/ui-guidelines.md](../../docs/ui-guidelines.md). Validate affected portal
+tests, type-check, and build after shared changes.

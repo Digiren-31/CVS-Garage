@@ -108,6 +108,9 @@ export class ForumController {
   async updatePost(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const { id } = req.params;
       const updated = await forumService.updatePost(id, req.body, user);
       return ForumController.sendSuccess(res, updated);
@@ -119,6 +122,9 @@ export class ForumController {
   async deletePost(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const { id } = req.params;
       const result = await forumService.deletePost(id, user);
       return ForumController.sendSuccess(res, result);
@@ -138,6 +144,14 @@ export class ForumController {
       const replies = await forumService.getReplies(id, user?.id);
       return ForumController.sendSuccess(res, replies, { total: replies.length });
     } catch (err) {
+      if (err.message === 'Post not found') {
+        return ForumController.sendError(
+          res,
+          'Discussion post not found',
+          'NOT_FOUND',
+          404
+        );
+      }
       return ForumController.sendError(res, err.message, 'GET_REPLIES_FAILED', 500);
     }
   }
@@ -160,6 +174,9 @@ export class ForumController {
   async markAcceptedSolution(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const { id } = req.params;
       const { replyId } = req.body;
 
@@ -239,6 +256,9 @@ export class ForumController {
   async toggleCommunityMembership(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const { id } = req.params;
       const result = await forumService.toggleCommunityMembership(id, user);
       return ForumController.sendSuccess(res, result);
@@ -267,6 +287,9 @@ export class ForumController {
   async toggleFollow(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const { targetType, targetId } = req.body;
       const result = await forumService.toggleFollow(targetType, targetId, user);
       return ForumController.sendSuccess(res, result);
@@ -282,6 +305,9 @@ export class ForumController {
   async exportToIdeaCentre(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const { postId, problemStatement, proposedSolution, expectedImpact, notes } = req.body;
 
       if (!postId) {
@@ -338,6 +364,9 @@ export class ForumController {
   async createReport(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const result = await forumService.createReport(req.body, user);
       return ForumController.sendSuccess(res, result, null, 201);
     } catch (err) {
@@ -348,6 +377,9 @@ export class ForumController {
   async getReports(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const reports = await forumService.getReports(user);
       return ForumController.sendSuccess(res, reports);
     } catch (err) {
@@ -358,6 +390,9 @@ export class ForumController {
   async resolveReport(req, res) {
     try {
       const user = await memberService.verifyAuth(req);
+      if (!user) {
+        return ForumController.sendError(res, 'Authentication required', 'UNAUTHORIZED', 401);
+      }
       const { id } = req.params;
       const result = await forumService.resolveReport(id, req.body, user);
       return ForumController.sendSuccess(res, result);
@@ -375,7 +410,12 @@ export class ForumController {
       const user = await memberService.verifyAuth(req);
       const allMembers = await memberService.getAllMembers();
       return ForumController.sendSuccess(res, {
-        currentUser: user,
+        currentUser: user
+          ? {
+              ...user,
+              forumPermissions: await forumService.getViewerPermissions(user)
+            }
+          : null,
         availableProfiles: allMembers
       });
     } catch (err) {

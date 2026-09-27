@@ -9,4 +9,6 @@ applyTo: "packages/**"
 - For shared UI work, follow the repository
 	[UI and theme guidelines](../../docs/ui-guidelines.md).
 - Coordinate interface changes with affected consumers; shared code must not import portal or service internals.
-- Keep these as reserved folders until stack selection and implementation are explicitly requested.
+- Keep contracts framework-neutral, transport behavior in `api-client`, and
+  reusable Fluent presentation primitives in `ui`.
+- Run affected portal tests, type-check, and build after shared changes.

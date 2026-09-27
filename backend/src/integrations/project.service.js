@@ -1,59 +1,27 @@
 /**
- * CVS Garage — Project Management Integration Adapter
- * Owns projects, team members, milestones, and repositories.
- * Follows Rule 3: Project Management owns projects.
+ * Projects integration adapter used by other backend domains.
+ * Project records remain owned by the Projects module.
  */
 
-export const MOCK_PROJECTS = [
-  {
-    id: 'PRJ-101',
-    name: 'Smart Campus Navigation',
-    slug: 'smart-campus-nav',
-    tagline: 'BLE Beacon indoor positioning & accessibility routing across college buildings',
-    status: 'in_progress',
-    leaderId: 'mem-student-1',
-    membersCount: 6,
-    tags: ['IoT', 'React Native', 'ESP32', 'BLE']
-  },
-  {
-    id: 'PRJ-102',
-    name: 'Solar Microgrid Energy Optimizer',
-    slug: 'solar-microgrid',
-    tagline: 'Real-time telemetry and edge predictive AI balancing solar rooftop load',
-    status: 'in_progress',
-    leaderId: 'mem-student-3',
-    membersCount: 4,
-    tags: ['IoT', 'Python', 'CleanTech', 'Time-Series']
-  },
-  {
-    id: 'PRJ-103',
-    name: 'Decentralized Student Credentials',
-    slug: 'decentralized-credentials',
-    tagline: 'W3C Verifiable Credentials issuing cryptographic college transcripts',
-    status: 'planning',
-    leaderId: 'mem-student-2',
-    membersCount: 3,
-    tags: ['Web3', 'Node.js', 'Cryptography']
-  }
-];
+import { projectsService } from '../modules/projects/projects.service.js';
+
+export { PROJECT_SEEDS as MOCK_PROJECTS } from '../modules/projects/projects.store.js';
 
 export class ProjectService {
+  constructor(service = projectsService) {
+    this.service = service;
+  }
+
   async getProjectById(projectId) {
-    return MOCK_PROJECTS.find((p) => p.id === projectId) || null;
+    return this.service.getProjectById(projectId);
   }
 
   async getAllProjects() {
-    return MOCK_PROJECTS;
+    return this.service.getAllProjects();
   }
 
   async searchProjects(query = '') {
-    const q = query.toLowerCase();
-    return MOCK_PROJECTS.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.tagline.toLowerCase().includes(q) ||
-        p.tags.some((t) => t.toLowerCase().includes(q))
-    );
+    return this.service.searchProjects(query);
   }
 }
 

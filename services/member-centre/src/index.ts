@@ -1,0 +1,1 @@
+export { MemberCentrePage } from './MemberCentrePage';

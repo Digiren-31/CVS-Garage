@@ -1,19 +1,30 @@
-# Central Portal
+# Central portal
 
-**Owner:** portal maintainer. **Status:** structure only.
+**Owner:** portal maintainer. **Status:** runnable integrated application.
 
-This is the landing and working folder for the central college portal. Its
-future scope is the homepage, application shell, and navigation to all six
-services. Only the portal maintainer publishes the central portal.
+The portal provides the shared application shell, dashboard, responsive
+navigation, development identity selector, light/dark/system mode control, and
+routes for all six service-owned frontends.
 
-## Start here
+## Run
 
-1. Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-2. Follow the repository [UI and theme guidelines](../../docs/ui-guidelines.md).
-3. Place future portal implementation in the source directory, reserved by
-   [src/.gitkeep](src/.gitkeep).
-4. Place future portal/integration tests in the test directory, reserved by
-   [tests/.gitkeep](tests/.gitkeep).
+From the repository root:
 
-No UI, routes, service integration, dependencies, or run/build commands have been
-created. Service implementation belongs to the respective service teams.
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. For a production-style local bundle, run
+`npm run build && npm start` and open `http://localhost:4000`.
+
+## Boundaries
+
+- Service pages are imported only from each service's public `src/index.ts`.
+- Domain behavior remains in its service and backend module.
+- Shared presentation comes from `packages/ui`; browser transport comes from
+  `packages/api-client`.
+- The identity selector is synthetic development tooling, not authentication.
+
+Read [INSTRUCTIONS.md](INSTRUCTIONS.md) and the repository
+[UI guidelines](../../docs/ui-guidelines.md) before editing.

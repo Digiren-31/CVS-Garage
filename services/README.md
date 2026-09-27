@@ -1,7 +1,7 @@
 # Service Team Working Areas
 
-Each service has its own landing page, local instructions, source directory,
-and test directory. Every service frontend follows the repository
+Each service has its own landing page, local instructions, public source entry,
+and test area. Every service frontend is composed by the central portal and follows the repository
 [UI and theme guidelines](../docs/ui-guidelines.md), including its assigned
 color identity. Start with the team's landing page:
 
@@ -14,8 +14,9 @@ color identity. Start with the team's landing page:
 | Idea Centre | [idea-centre/README.md](idea-centre/README.md) | [idea-centre/INSTRUCTIONS.md](idea-centre/INSTRUCTIONS.md) |
 | Forum and Discussions | [forum/README.md](forum/README.md) | [forum/INSTRUCTIONS.md](forum/INSTRUCTIONS.md) |
 
-These are frontend/domain ownership boundaries, not six implemented backend
-microservices. Work on short-lived branches; do not use permanent branches or
-nested Git repositories as a substitute for these folders.
+These are frontend/domain ownership boundaries, not six backend microservices.
+Their server modules run in the centralized Express backend. Work on short-lived
+branches; do not use permanent branches or nested Git repositories as a
+substitute for these folders.
 
 See [../CONTRIBUTING.md](../CONTRIBUTING.md) for the shared workflow.

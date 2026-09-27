@@ -1,19 +1,33 @@
 {
   "name": "@cvs-garage/backend",
   "version": "1.0.0",
-  "description": "Central backend server for CVS Garage platform modules",
+  "description": "Central modular backend for the CVS Garage college innovation portal",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node tests/forum.test.js"
+    "build": "node scripts/validate-build.js",
+    "test": "cross-env NODE_ENV=test node --test tests/*.test.js",
+    "lint": "node scripts/validate-build.js",
+    "typecheck": "node scripts/validate-build.js"
   },
-  "keywords": ["forum", "college-portal", "backend"],
+  "keywords": [
+    "college-portal",
+    "projects",
+    "events",
+    "ideas",
+    "forum",
+    "backend"
+  ],
   "author": "CVS Garage Team",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "supertest": "7.3.0"
   }
 }

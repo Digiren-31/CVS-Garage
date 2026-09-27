@@ -1,17 +1,14 @@
-# Central Portal Working Instructions
+# Central portal working instructions
 
 - Follow [../../CONTRIBUTING.md](../../CONTRIBUTING.md).
 - Follow [../../docs/ui-guidelines.md](../../docs/ui-guidelines.md) for Fluent UI,
-  the portal color identity, typography, light/dark modes, motion, and accessibility.
-- Own the homepage, application shell, global navigation, and central publication
-  when implementation is requested. Do not implement these in the structure phase.
-- Coordinate the frontend stack and service integration interfaces before adding
-  runtime dependencies or mounting service frontends.
-- Consume services through agreed public interfaces, not their private source.
-- Keep domain-specific logic in the corresponding service area.
-- Coordinate shared UI and API transport changes with affected teams.
-- Keep database access, server secrets, and privileged operations out of browser code.
-- Use branches such as `portal/feat/<description>` and pull requests into `main`.
-- Add documented setup and validation commands when application tooling exists;
-  for now, validate folder placement and documentation only.
+  area identities, typography, modes, motion, and accessibility.
+- Own only the homepage, app shell, global navigation, route composition, and
+  publication. Keep domain workflows in the corresponding service.
+- Import services through their public `src/index.ts`, never private modules.
+- Reuse `packages/ui`, `packages/api-client`, and `packages/contracts`.
+- Keep database access, server secrets, and authorization out of browser code.
+- Preserve responsive navigation, keyboard access, visible focus, loading/error
+  states, and light/dark/system behavior.
+- Run portal tests, lint, type-check, and production build before completion.
 - Central hosting credentials and release approval stay with the portal maintainer.

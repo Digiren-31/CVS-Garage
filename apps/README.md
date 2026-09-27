@@ -4,5 +4,6 @@
 portal, owned and eventually published by the portal maintainer.
 
 The six domain frontends have separate team areas listed in
-[../services/README.md](../services/README.md). No runnable applications or
-independent deployment pipelines exist yet.
+[../services/README.md](../services/README.md). The portal is the single
+runnable frontend and composes each service through its public entry point.
+Independent service deployment pipelines are not configured.

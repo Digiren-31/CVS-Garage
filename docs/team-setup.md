@@ -37,8 +37,7 @@ repository's plan and visibility:
 - [ ] Require review conversations to be resolved.
 - [ ] Block force pushes and branch deletion.
 - [ ] Review administrator/bypass permissions and apply protections to them where supported.
-- [ ] When CI is introduced, require the actual checks after they have run.
-      There are no build/test workflows to require in this scaffold.
+- [ ] Require the `Validate / check` workflow after it has passed on `main`.
 
 An author cannot approve their own pull request. Arrange another trusted reviewer
 before requiring reviews on sole-maintainer work; avoid making normal work

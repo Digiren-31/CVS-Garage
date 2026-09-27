@@ -1,15 +1,12 @@
-# Frontend / Backend Contracts
+# Frontend/backend contracts
 
-**Intended owners:** backend team and affected frontend teams.
-**Status:** agreement area only; no API definitions or package manifest yet.
+`src/index.ts` defines the public TypeScript view models and API envelope shared
+by the portal, service frontends, and browser client. Forum-specific contracts
+remain under `src/forum/`.
 
-This is the landing folder for shared API/interface agreements. Select the
-specification/schema format with the backend team; no shared implementation
-language is required by this layout.
+The backend is JavaScript today, so Supertest coverage and runtime endpoint
+probes enforce these shapes in addition to the frontend TypeScript compiler.
+Breaking changes require coordinated backend and affected frontend review.
 
-Read [INSTRUCTIONS.md](INSTRUCTIONS.md) before adding contracts. Endpoint shapes,
-role names, authentication/session behavior, and compatibility policies remain
-open decisions. This folder contains no executable code or validation tooling yet.
-
-- Future schema/interface definitions: [src/.gitkeep](src/.gitkeep).
-- Future contract validation checks: [tests/.gitkeep](tests/.gitkeep).
+Database schemas are implementation artifacts, not browser contracts. The
+Events PostgreSQL proposal therefore lives under `backend/database/schema/`.

@@ -1,13 +1,13 @@
-# Shared Working Areas
+# Shared working areas
 
-These folders are reserved ownership areas, not installable packages yet.
+These folders provide the public frontend foundations used by the portal and
+service pages.
 
-| Area | Landing page | Instructions |
-| --- | --- | --- |
-| UI primitives | [ui/README.md](ui/README.md) | [ui/INSTRUCTIONS.md](ui/INSTRUCTIONS.md) |
-| API transport | [api-client/README.md](api-client/README.md) | [api-client/INSTRUCTIONS.md](api-client/INSTRUCTIONS.md) |
-| Frontend/backend contracts | [contracts/README.md](contracts/README.md) | [contracts/INSTRUCTIONS.md](contracts/INSTRUCTIONS.md) |
+| Area | Responsibility |
+| --- | --- |
+| [ui](ui/README.md) | Fluent themes, area identities, and reusable presentation primitives |
+| [api-client](api-client/README.md) | Typed browser-to-backend transport and local development identity context |
+| [contracts](contracts/README.md) | Shared request/response and view-model types |
 
-Shared changes require coordination with affected teams. Do not move domain
-logic here merely to bypass a service boundary. No package manager, dependency
-graph, or runtime exports are configured.
+Shared packages must not import portal or service implementation. Domain rules,
+authorization, and persistence remain in the centralized backend.

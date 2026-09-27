@@ -1,15 +1,14 @@
 # Events
 
-**Intended owner:** Events team; actual GitHub owners are not assigned yet.
-**Status:** structure only.
+**Owner:** Events team. **Status:** integrated MVP.
 
-This is the Events team's landing and working folder for the college portal.
-Detailed features and API requirements will be agreed in a later phase.
+The Events frontend is available at `/events` in the central portal. Members can
+discover and search events, inspect schedules, dates, capacity and venue, then
+register or cancel their own registration.
 
-## Start here
+The centralized backend exposes `/api/v1/events` and persists synthetic local
+state in `backend/data/events.json`. The PostgreSQL schema proposal in
+`backend/database/schema/events.sql` remains the production migration reference.
 
-1. Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-2. Use the source directory, reserved by [src/.gitkeep](src/.gitkeep), for future implementation.
-3. Use the test directory, reserved by [tests/.gitkeep](tests/.gitkeep), for future tests.
-
-No framework, UI, routes, API calls, or run/build/test commands are defined yet.
+`src/index.ts` is the service's public frontend entry point. Run and validate
+the project from the repository root.

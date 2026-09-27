@@ -1,13 +1,11 @@
-# Shared API Client
+# Shared API client
 
-**Intended owner:** frontend integrators, coordinated with the backend team.
-**Status:** structure only.
+`src/index.ts` owns browser-to-backend requests for the central `/api/v1`
+surface. It applies consistent envelope handling, exposes typed domain methods,
+and sends the selected synthetic `x-user-id` during local development.
 
-Reserve this area for common browser-to-backend transport behavior once APIs
-and session requirements are agreed. It is not a database client.
+The client throws explicit `ApiClientError` values for network and API failures;
+service pages must render those failures rather than silently treating them as
+empty data.
 
-- Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-- Future source directory: [src/.gitkeep](src/.gitkeep).
-- Future test directory: [tests/.gitkeep](tests/.gitkeep).
-
-No API calls, endpoint URLs, authentication strategy, or runtime package exist yet.
+This package never connects to persistence or performs authorization.

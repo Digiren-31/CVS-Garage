@@ -1,0 +1,1 @@
+export { IdeaCentrePage } from './IdeaCentrePage';

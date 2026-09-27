@@ -1,0 +1,27 @@
+{
+  "name": "cvs-garage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/portal",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names api,portal \"npm run dev --workspace @cvs-garage/backend\" \"npm run dev --workspace @cvs-garage/portal\"",
+    "start": "npm run start --workspace @cvs-garage/backend",
+    "build": "npm run build --workspace @cvs-garage/backend && npm run build --workspace @cvs-garage/portal",
+    "test": "npm run test --workspace @cvs-garage/backend && npm run test --workspace @cvs-garage/portal",
+    "lint": "node scripts/check-doc-links.mjs && npm run lint --workspace @cvs-garage/backend && eslint \"apps/portal/**/*.{ts,tsx}\" \"services/*/src/**/*.{ts,tsx}\" \"packages/*/src/**/*.{ts,tsx}\"",
+    "typecheck": "npm run typecheck --workspace @cvs-garage/backend && npm run typecheck --workspace @cvs-garage/portal",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run smoke"
+  },
+  "devDependencies": {
+    "concurrently": "10.0.5"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  }
+}

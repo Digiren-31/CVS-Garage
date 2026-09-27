@@ -13,5 +13,5 @@
   global navigation and central publication remain maintainer-owned.
 - Agree APIs through [../../packages/contracts/README.md](../../packages/contracts/README.md).
 - Use branches such as `member-centre/feat/<description>` and pull requests into `main`.
-- Add local setup and test instructions when tooling is selected. Until then,
-  validate directory placement and documentation without adding application code.
+- Export the route through `src/index.ts`, use shared Fluent UI/API contracts,
+  and run portal tests, type-check, and build after changes.

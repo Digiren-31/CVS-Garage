@@ -1,48 +1,37 @@
-/**
- * CVS Garage — Event Management Integration Adapter
- * Owns events, hackathons, workshops, and dates.
- * Follows Rule 4: Event Management owns events.
- */
+import { eventsService } from '../modules/events/events.service.js';
+import { createEventsSeed } from '../modules/events/events.store.js';
 
-export const MOCK_EVENTS = [
-  {
-    id: 'EVT-2026-01',
-    title: 'HackSprint 2026 (36h Campus Hackathon)',
-    slug: 'hacksprint-2026',
-    type: 'hackathon',
-    startDate: '2026-10-14T09:00:00Z',
-    endDate: '2026-10-15T21:00:00Z',
-    status: 'upcoming',
-    description: 'Annual flagship college hackathon focused on sustainable smart campus and AI solutions.'
-  },
-  {
-    id: 'EVT-2026-02',
-    title: 'Annual Tech Innovation Fest 2026',
-    slug: 'tech-fest-2026',
-    type: 'tech_fest',
-    startDate: '2026-11-02T10:00:00Z',
-    endDate: '2026-11-04T18:00:00Z',
-    status: 'upcoming',
-    description: 'Hardware exhibits, startup pitch competitions, and paper presentations.'
+function toIntegrationEvent(event) {
+  if (!event) {
+    return null;
   }
-];
+  return {
+    ...event,
+    type: event.type || event.category,
+    startDate: event.startDate || event.startsAt,
+    endDate: event.endDate || event.endsAt
+  };
+}
+
+export const MOCK_EVENTS = createEventsSeed().events.map(toIntegrationEvent);
 
 export class EventService {
+  constructor(service = eventsService) {
+    this.service = service;
+  }
+
   async getEventById(eventId) {
-    return MOCK_EVENTS.find((e) => e.id === eventId) || null;
+    return toIntegrationEvent(await this.service.getEventById(eventId));
   }
 
   async getAllEvents() {
-    return MOCK_EVENTS;
+    const events = await this.service.listEvents();
+    return events.map(toIntegrationEvent);
   }
 
   async searchEvents(query = '') {
-    const q = query.toLowerCase();
-    return MOCK_EVENTS.filter(
-      (e) =>
-        e.title.toLowerCase().includes(q) ||
-        e.type.toLowerCase().includes(q)
-    );
+    const events = await this.service.listEvents({ q: query });
+    return events.map(toIntegrationEvent);
   }
 }
 

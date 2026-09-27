@@ -21,9 +21,10 @@ List affected owners, interface changes, and coordination needed, or write "None
 
 ## Validation
 
-Describe checks actually performed and results. During the structure-only phase,
-check placement, documentation links, and instruction/ownership scope. Do not
-claim application builds or tests ran when no tooling exists yet.
+Describe checks actually performed and results. Integrated changes should run
+the relevant focused tests plus `npm run lint`, `npm run typecheck`, and
+`npm run build`. Backend route changes also require Supertest coverage or a
+runtime endpoint probe.
 
 ## Checklist
 

@@ -1,6 +1,7 @@
 # Member Centre — Database Schema Design
 
-**Status:** proposed design. No database engine is selected and no migrations exist.
+**Status:** production schema proposal. The local MVP uses JSON persistence; no
+PostgreSQL migrations exist yet.
 **Owner:** backend team. **Consumers:** Member Centre team, portal maintainer.
 **Related:** [role strategy](02-member-centre-role-strategy.md) ·
 [API architecture](03-member-centre-api.md) ·
@@ -13,12 +14,12 @@ frontend that consumes the API in the companion document.
 
 ## Engine assumption
 
-The design targets a **relational** engine (PostgreSQL-shaped) and is written so
-it can be ported. It relies on: foreign keys, unique partial indexes, a JSON
+The production design targets **PostgreSQL** and is written so most of it can be
+ported. It relies on: foreign keys, unique partial indexes, a JSON
 column type, and transactional multi-table writes. The role transition and audit
 requirements below depend on those last two, so a document store would need
-explicit compensating design. The engine choice remains the backend team's, and
-nothing here provisions one.
+explicit compensating design. Migration and ORM tooling remain the backend
+team's decision, and nothing here provisions the database.
 
 Conventions used throughout: surrogate `uuid` primary keys, `timestamptz` for all
 instants stored in UTC, soft deletion via nullable `deleted_at`, and

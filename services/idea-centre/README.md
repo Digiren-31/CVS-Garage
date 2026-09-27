@@ -1,15 +1,14 @@
 # Idea Centre
 
-**Intended owner:** Idea Centre team; actual GitHub owners are not assigned yet.
-**Status:** structure only.
+**Owner:** Idea Centre team. **Status:** integrated MVP.
 
-This is the Idea Centre team's landing and working folder for the college
-portal. Detailed idea workflows and API requirements remain future decisions.
+The Idea Centre route supports idea discovery, search, submission, saving, team
+join requests, comments, and visible mentorship/team state. Forum exports enter
+the same backend domain with source-level duplicate prevention.
 
-## Start here
+The frontend is composed by the central React portal through `src/index.ts`.
+The centralized Express API is rooted at `/api/v1/idea-centre`, with synthetic
+local state stored under `backend/data/`.
 
-1. Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-2. Use the source directory, reserved by [src/.gitkeep](src/.gitkeep), for future implementation.
-3. Use the test directory, reserved by [tests/.gitkeep](tests/.gitkeep), for future tests.
-
-No framework, UI, routes, API calls, or run/build/test commands are defined yet.
+Read [INSTRUCTIONS.md](INSTRUCTIONS.md) for the selected architecture and
+authorization rules.

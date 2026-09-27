@@ -1,8 +1,8 @@
-# Leaderboards architecture proposal
+# Leaderboards architecture and implementation guide
 
 ## Status and boundaries
 
-This document proposes the public Leaderboards frontend and its data contract.
+This document records the public Leaderboards frontend and its data contract.
 The central `backend` area remains responsible for persistence, authorization,
 score calculation, ranking, and aggregation. The Leaderboards browser code must
 only display server-authoritative scores and public profile fields.
@@ -213,8 +213,9 @@ table semantics and keyboard navigation.
 
 ## Task 3: Interactive UI implementation
 
-[src/CustomLeaderboard.tsx](src/CustomLeaderboard.tsx) provides the requested
-React and Tailwind CSS section. It includes:
+[src/CustomLeaderboard.tsx](src/CustomLeaderboard.tsx) provides the React
+leaderboard section. The integrated route uses shared Fluent UI primitives and
+semantic tokens. It includes:
 
 - combinable Event, minimum Star Rating, Department, and Academic Year filters;
 - stable, memoized filtering without score recalculation;
@@ -224,11 +225,8 @@ React and Tailwind CSS section. It includes:
 - horizontal overflow on small screens rather than replacing table semantics
   with inaccessible visual-only cards.
 
-The component uses Tailwind for layout and consumes semantic CSS custom
-properties supplied by the future shared theme. It intentionally does not
-define a parallel local theme. When dependencies are selected, Fluent UI v9
-should provide shared controls and tokens while preserving the native semantics
-and responsive behavior demonstrated here.
+The component consumes semantic tokens from the shared Fluent UI theme and does
+not define a parallel local theme.
 
 ### Theme token proposal
 
@@ -297,9 +295,8 @@ the chance of exposing fields that the page does not need.
 
 ### Fetching and caching
 
-- Use the future shared API client for transport and TanStack Query (or the
-  repository-selected equivalent) for request deduplication, cancellation,
-  stale-while-revalidate behavior, and bounded retries.
+- Use the shared API client for transport. Add a shared query/cache library only
+  when measured request volume justifies its dependency and lifecycle cost.
 - Key custom results by a canonical tuple of Event, minimum star rating,
   Department, Academic Year, cursor, and scoring-policy version.
 - Cache public aggregate responses at the CDN and browser using `ETag` and a

@@ -1,57 +1,126 @@
-# CVS Garage — College Portal
+# CVS Garage — College Innovation Portal
 
-A framework-neutral monorepo for one central college portal and six service
-teams. **Current stage: folders and instructions only.** There is no application
-code, UI, navigation, backend, database, or deployment yet.
+CVS Garage is a modular college portal that brings Projects, Events, Member
+Centre, Leaderboards, Idea Centre, and Forum & Discussions into one shared
+workspace. The repository now contains a runnable full-stack MVP with synthetic
+development data.
 
-## Working folders
+## Technology baseline
 
-Start in the appropriate area's README, then read its local instructions.
-The owners below describe responsibilities; GitHub teams are not provisioned.
+- **Portal:** React, TypeScript, Vite, React Router, and Fluent UI React v9.
+- **Backend:** Express modular monolith with versioned REST endpoints.
+- **Shared frontend:** typed contracts, a browser API client, and area-aware
+  Fluent UI themes under `packages/`.
+- **Local persistence:** ignored JSON state files under `backend/data/`.
+- **Validation:** Node test runner, Supertest, Vitest, Testing Library, ESLint,
+  TypeScript, and production builds.
 
-| Area | Team landing page | Working instructions | Intended owner |
-| --- | --- | --- | --- |
-| Central portal | [apps/portal/README.md](apps/portal/README.md) | [apps/portal/INSTRUCTIONS.md](apps/portal/INSTRUCTIONS.md) | Portal maintainer |
-| Projects | [services/projects/README.md](services/projects/README.md) | [services/projects/INSTRUCTIONS.md](services/projects/INSTRUCTIONS.md) | Projects team |
-| Events | [services/events/README.md](services/events/README.md) | [services/events/INSTRUCTIONS.md](services/events/INSTRUCTIONS.md) | Events team |
-| Member Centre | [services/member-centre/README.md](services/member-centre/README.md) | [services/member-centre/INSTRUCTIONS.md](services/member-centre/INSTRUCTIONS.md) | Member Centre team |
-| Leaderboards | [services/leaderboards/README.md](services/leaderboards/README.md) | [services/leaderboards/INSTRUCTIONS.md](services/leaderboards/INSTRUCTIONS.md) | Leaderboards team |
-| Idea Centre | [services/idea-centre/README.md](services/idea-centre/README.md) | [services/idea-centre/INSTRUCTIONS.md](services/idea-centre/INSTRUCTIONS.md) | Idea Centre team |
-| Forum and Discussions | [services/forum/README.md](services/forum/README.md) | [services/forum/INSTRUCTIONS.md](services/forum/INSTRUCTIONS.md) | Forum team |
-| Backend and database | [backend/README.md](backend/README.md) | [backend/INSTRUCTIONS.md](backend/INSTRUCTIONS.md) | Backend team |
+The local persistence and development identity selector make the complete portal
+easy to demonstrate without external services. They are not a substitute for
+institutional SSO or the proposed PostgreSQL production schemas.
 
-Every application/service working folder has source and test directories kept
-in Git by placeholder files. No framework or package manager has been selected.
+## Get started
 
-## Shared areas
+Requirements: Node.js 22.12 or newer and npm 10 or newer.
 
-- [packages/ui/README.md](packages/ui/README.md): future shared UI primitives.
-- [packages/api-client/README.md](packages/api-client/README.md): future shared API transport.
-- [packages/contracts/README.md](packages/contracts/README.md): frontend/backend interface agreements.
+```bash
+npm install
+npm run dev
+```
 
-All frontend areas follow [docs/ui-guidelines.md](docs/ui-guidelines.md). The
-shared design contract selects Fluent UI, Google Sans typography, distinct area
-color identities, light and dark modes, and common accessibility and motion
-standards. Implementation remains deferred until the frontend stack is selected.
+Open `http://localhost:3000`. The Vite development server proxies `/api` to the
+Express backend at `http://localhost:4000`.
+
+The header contains a clearly labelled synthetic identity selector for testing
+Student, Mentor, Moderator, and Admin behavior. Every protected backend action
+still re-checks the selected identity and its permissions.
+
+### Production-style local run
+
+```bash
+npm run build
+npm start
+```
+
+The backend serves the built portal and API from `http://localhost:4000`.
+
+### Validation
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm run smoke
+
+# Or run the full sequence
+npm run check
+```
+
+## Working areas
+
+Read the relevant landing page and local instructions before changing an area.
+The owners below describe responsibilities; GitHub teams are not yet provisioned.
+
+| Area | Working folder | Current MVP capability |
+| --- | --- | --- |
+| Central portal | [apps/portal](apps/portal/README.md) | Shell, dashboard, routing, theme and identity controls |
+| Projects | [services/projects](services/projects/README.md) | Project discovery, creation, milestones, teams, progress |
+| Events | [services/events](services/events/README.md) | Discovery, schedules, capacity, registration and cancellation |
+| Member Centre | [services/member-centre](services/member-centre/README.md) | Member directory, profiles, stats, admin status and mentor controls |
+| Leaderboards | [services/leaderboards](services/leaderboards/README.md) | Achievements, server-ranked results, cohort and event filters |
+| Idea Centre | [services/idea-centre](services/idea-centre/README.md) | Idea submission, saving, team requests, comments and mentorship state |
+| Forum and Discussions | [services/forum](services/forum/README.md) | Posts, replies, votes, accepted solutions, communities and integrations |
+| Backend and database | [backend](backend/README.md) | Central APIs, authorization checks, seeded local persistence |
+
+## Architecture at a glance
+
+The central portal composes service-owned public React entry points. Those
+frontends consume `packages/api-client`, which calls the centralized backend.
+No service imports another service's private source, and browser code never
+accesses persistence directly.
+
+```text
+apps/portal
+  └── public service entry points
+      ├── services/projects
+      ├── services/events
+      ├── services/member-centre
+      ├── services/leaderboards
+      ├── services/idea-centre
+      └── services/forum
+             │
+             ▼
+      packages/api-client
+             │
+             ▼
+      backend/src/modules
+             │
+             ▼
+      backend/data (local ignored JSON state)
+```
+
+See [docs/architecture.md](docs/architecture.md) for decisions and production
+boundaries, [docs/api.md](docs/api.md) for the local endpoint surface, and
+[docs/ui-guidelines.md](docs/ui-guidelines.md) for the shared design contract.
+
+## Local data and reset
+
+The backend creates synthetic state files in `backend/data/` on first use.
+Delete the individual JSON files while the backend is stopped to reset that
+domain to its seed data. The directory is ignored by Git.
+
+Never use real student information in local seeds or commits. Environment files,
+credentials, production exports, and local state must remain untracked.
 
 ## Collaboration
 
-Teams work in their area on short-lived branches and open pull requests into
-`main`. The portal maintainer owns the central portal and its eventual publication;
-the backend team owns backend and database delivery.
+Teams work in their own areas on short-lived branches and integrate through
+public contracts. The portal maintainer owns the shared shell and publication;
+the backend team owns server behavior, authorization, and persistence.
 
-- [CONTRIBUTING.md](CONTRIBUTING.md): contribution workflow.
-- [docs/architecture.md](docs/architecture.md): boundaries and deferred decisions.
-- [docs/team-setup.md](docs/team-setup.md): GitHub owner and protection setup.
-- [.github/CODEOWNERS](.github/CODEOWNERS): inactive ownership template awaiting real users/teams.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — workflow and required checks.
+- [docs/team-setup.md](docs/team-setup.md) — owner and protection setup.
+- [.github/CODEOWNERS](.github/CODEOWNERS) — inactive template awaiting real owners.
 
-**Folder ownership is not a push restriction.** GitHub write access is
-repository-wide. CODEOWNERS plus required reviews protects integration into
-`main`, not individual working folders. Use separate repositories if strict
-per-team write or visibility isolation is required.
-
-## Run and build status
-
-There is nothing to install, run, debug, build, or deploy in this phase. Runtime
-commands and CI will be documented when the stack is chosen. The UI direction is
-documented, while components, homepage, and navigation remain future work.
+Folder ownership is a review boundary, not a GitHub write restriction.

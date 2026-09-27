@@ -12,6 +12,7 @@ coverage/
 .cache/
 *.tsbuildinfo
 *.log
+backend/data/
 
 # Local editor and operating-system files.
 .idea/

@@ -1,17 +1,20 @@
-# Backend Working Instructions
+# Backend working instructions
 
 - Follow [../CONTRIBUTING.md](../CONTRIBUTING.md).
-- Own server implementation, authentication, authorization, database changes,
-  and backend deployment. Do not implement central portal UI here.
-- Select the backend stack and database with the team before adding dependencies.
-- Agree request/response shapes, errors, session behavior, and permissions with
-  affected frontend teams through
-  [../packages/contracts/INSTRUCTIONS.md](../packages/contracts/INSTRUCTIONS.md).
-- Enforce permissions server-side, especially Member Centre admin operations.
-- Keep credentials out of Git and all frontend areas. Use placeholders in
-  environment examples; do not commit production data or real student records.
-- Document migrations, compatibility, validation, and rollback/recovery plans
-  when database changes are introduced.
-- Use branches such as `backend/feat/<description>` and pull requests into `main`.
-- Add stack-specific setup and test instructions when implementation starts;
-  this scaffold does not provision or connect to a database.
+- Keep the server as one modular Express backend unless an architecture decision
+  explicitly introduces a deployable boundary.
+- Own authentication, authorization, persistence, migrations, and cross-domain
+  orchestration. Do not implement portal presentation here.
+- Use the common API envelope helpers in `src/lib/http.js`.
+- Use `src/lib/persistent-store.js` for local MVP state. Do not commit generated
+  files from `data/`, credentials, production exports, or real student records.
+- Treat `x-user-id` as local development identity only. Validate the identity
+  and enforce role plus resource ownership on every protected mutation.
+- Keep integration adapters explicit; do not reach through another module's
+  frontend or duplicate its canonical entities.
+- Agree public request/response changes through
+  [../packages/contracts](../packages/contracts/INSTRUCTIONS.md).
+- Add focused Node/Supertest tests. Run backend build, lint, type-check, and test
+  commands before completing a change.
+- Document migration validation, compatibility, and rollback before replacing
+  local persistence with PostgreSQL.

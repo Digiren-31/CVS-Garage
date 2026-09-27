@@ -1,7 +1,7 @@
 # College Project Management Module — Backend Architecture
 
 > **Principal Architecture Engineer Document**
-> Service Domain: `projects` · Color Identity: **Teal** (`#038387`) · Monorepo: `cvs-garage`
+> Service Domain: `projects` · Color Identity: **Indigo** (`#5B5FC7`) · Monorepo: `cvs-garage`
 > Status: Architecture & Schema Design · Stack: Technology-agnostic (backend team selects)
 
 ---
@@ -61,7 +61,8 @@
 
 > **Note to backend team:** Backend responses do not embed UI colors. The following instructs the frontend (`services/projects/`) and `packages/ui` on how to register the Projects identity per `docs/ui-guidelines.md`.
 
-Per the central UI guidelines, the Projects area uses **Indigo** (`#5B5FC7`) as its assigned seed. However, the user has specified **Teal** (`#038387`) as the service theme for this module. Since `#038387` is the Member Centre's assigned seed in the repository guidelines, you should **raise a governance review** with the portal maintainer to reconcile this — either reassigning the teal identity to Projects, or confirming a distinct teal variant is acceptable.
+Per the central UI guidelines, the Projects area uses **Indigo** (`#5B5FC7`) as
+its assigned seed. This is the approved implementation identity.
 
 ### Token Registration Pattern (`packages/ui/themes/projects.ts`)
 
@@ -71,13 +72,13 @@ Per the central UI guidelines, the Projects area uses **Indigo** (`#5B5FC7`) as 
 
 PROJECT_THEME_TOKENS = {
   brand: {
-    seed:            "#038387",   // teal seed (pending governance review)
-    primary:         <generated teal-70 from seed>,
-    primaryHover:    <teal-80>,
-    primaryActive:   <teal-90>,
-    subtle:          <teal-10>,
-    subtleHover:     <teal-20>,
-    selected:        <teal-60>,
+    seed:            "#5B5FC7",   // approved indigo seed
+    primary:         <generated indigo-70 from seed>,
+    primaryHover:    <indigo-80>,
+    primaryActive:   <indigo-90>,
+    subtle:          <indigo-10>,
+    subtleHover:     <indigo-20>,
+    selected:        <indigo-60>,
     onPrimary:       "#FFFFFF",   // white for text on primary actions
   },
   // Neutral surfaces inherit from Fluent global tokens — no override.
@@ -1231,7 +1232,8 @@ NAMED POLICIES (server-side, not UI-side):
 2. **Existing auth system** — Session/JWT validation is pre-built. Our middleware consumes it, does not replace it.
 3. **Single deployable backend** — Per `docs/architecture.md`, the six "services" are frontend ownership boundaries, not separate backend microservices. The Projects domain lives within one backend runtime.
 4. **PostgreSQL recommended** — JSONB, GIN indexes for full-text search on showcase, and native UUID support make it the best fit. Schema uses standard SQL where possible.
-5. **No framework selected yet** — The schema and contracts are framework-agnostic. ORM models, migration files, and runtime wiring are the backend team's responsibility.
+5. **Runtime baseline selected** — The MVP uses the centralized Express backend.
+   The production PostgreSQL ORM/migration adapter remains a backend-team decision.
 
 ### Why `pitches` and `projects` are Strictly Separated
 
@@ -1269,11 +1271,8 @@ Pitches should **not** cascade-delete their proposed members, mentor requests, o
 
 ### Theme Token Governance Note
 
-The user specified **teal + white/black** as the service theme. Per `docs/ui-guidelines.md`, the Projects area is assigned **Indigo** (`#5B5FC7`) and Teal (`#038387`) belongs to the Member Centre. The backend team should raise this as a governance item with the portal maintainer before frontend implementation begins. Options:
-1. Swap color assignments (Projects takes Teal, Member Centre takes a new seed).
-2. Use a distinct teal variant (e.g., a lighter teal) that doesn't conflict.
-
-The backend is unaffected either way (no colors in API responses). This note is for coordination with `services/projects/` frontend work.
+Projects uses the approved Indigo (`#5B5FC7`) identity from
+`docs/ui-guidelines.md`. Backend responses remain presentation-neutral.
 
 ---
 

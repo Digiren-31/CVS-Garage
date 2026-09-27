@@ -1,11 +1,13 @@
 /**
  * CVS Garage — Forum Data Store
- * In-memory persistence engine pre-seeded with realistic college innovation data.
+ * Seeded forum state with optional local JSON persistence.
  * Adheres strictly to the database schema defined in backend/database/schema/forum.sql.
  */
 
+import { createPersistentStore } from '../../lib/persistent-store.js';
+
 export class ForumStore {
-  constructor() {
+  constructor({ persistent = false } = {}) {
     this.categories = [];
     this.tags = [];
     this.communities = [];
@@ -22,6 +24,35 @@ export class ForumStore {
     this.notifications = [];
 
     this.initSeeds();
+
+    this.persistence = null;
+    if (persistent) {
+      const keys = [
+        'categories',
+        'tags',
+        'communities',
+        'communityMembers',
+        'posts',
+        'replies',
+        'votes',
+        'bookmarks',
+        'follows',
+        'ideaExports',
+        'contributionEvents',
+        'reports',
+        'moderationLogs',
+        'notifications'
+      ];
+      const seed = Object.fromEntries(keys.map((key) => [key, this[key]]));
+      this.persistence = createPersistentStore('forum', () => seed);
+      keys.forEach((key) => {
+        this[key] = this.persistence.state[key];
+      });
+    }
+  }
+
+  persist() {
+    this.persistence?.persist();
   }
 
   initSeeds() {
@@ -337,4 +368,4 @@ export class ForumStore {
   }
 }
 
-export const forumStore = new ForumStore();
+export const forumStore = new ForumStore({ persistent: process.env.NODE_ENV !== 'test' });

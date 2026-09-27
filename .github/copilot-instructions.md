@@ -2,13 +2,15 @@
 
 ## Current scope
 
-- This is a framework-neutral college portal monorepo at the directory-only stage.
+- This is a runnable college portal monorepo with a React/TypeScript/Vite portal,
+  six service-owned frontend areas, and a centralized Express backend.
 - Preserve the central portal, six service areas, backend/database handoff, and
   shared working areas listed in [../README.md](../README.md).
 - Treat [../docs/ui-guidelines.md](../docs/ui-guidelines.md) as the design
   contract for every portal and service frontend.
-- Do not add UI, routes, application logic, dependencies, or deployment setup
-  unless a later request explicitly starts that implementation work.
+- Preserve the public service entry points, shared contracts/client/UI packages,
+  versioned API routes, and development-only identity boundary documented in
+  [../docs/architecture.md](../docs/architecture.md).
 
 ## Working rules
 
@@ -25,6 +27,9 @@
   [../docs/architecture.md](../docs/architecture.md) for dependency direction.
 - Never commit secrets or real student data, and never place privileged server
   operations or database access in browser code.
+- Treat `x-user-id` as local development tooling only. Protected backend routes
+  must still authorize the resolved synthetic identity.
+- Keep local JSON runtime state under the ignored `backend/data` directory.
 - Keep this repository as the project root; do not create nested Git repositories.
 - Preserve placeholder files so source/test working directories survive Git clones.
 - No GitHub team or protection is active merely because an instruction file
@@ -32,22 +37,11 @@
 
 ## Validation
 
-- There are no install, build, test, debug, or launch commands yet.
-- For scaffold edits, verify directory placement, local links, and instruction
-  scopes. Never report application checks as passing when no application exists.
-- Add actual setup/validation commands and update these instructions when the
-  stack is selected. Do not add fake-success scripts or unnecessary extensions.
-
-## Initial setup checklist
-
-- [x] Verify repository instructions — created and customized for this repository.
-- [x] Clarify requirements — central portal, six services, separate backend ownership; structure only.
-- [x] Scaffold project — landing pages, local instructions, and working directories created.
-- [x] Customize project — contribution rules, ownership template, and scoped editor instructions added.
-- [x] Install required extensions — skipped; none required for a directory scaffold.
-- [x] Compile project — skipped; no application code or dependencies exist.
-- [x] Create and run task — skipped; no runnable application or build task exists.
-- [x] Define UI direction — Fluent UI, area themes, typography, modes, motion,
-  and accessibility documented; implementation remains deferred.
-- [x] Launch project — skipped; application implementation belongs to a later phase.
-- [x] Complete documentation — working folders, local links, instruction scopes, formatting, and diagnostics verified.
+- Install dependencies with `npm install` (or `npm ci` in CI).
+- Use `npm run dev` for the portal and API development servers.
+- Run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`
+  before completing integrated changes; `npm run check` runs the full sequence.
+- Backend route changes require Supertest coverage or an explicit runtime HTTP
+  probe. Frontend workflows require component tests and representative browser
+  checks.
+- Never add fake-success scripts or silently convert failed API calls to empty data.

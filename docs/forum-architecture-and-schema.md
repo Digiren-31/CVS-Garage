@@ -2,7 +2,12 @@
 **Document Version:** 1.0.0  
 **Author:** Principal Software Engineer & Solution Architect  
 **Service:** Forum & Discussions (`services/forum` & `backend/src/modules/forum`)  
-**Design Tokens:** Primary Theme: Orange (`#EA580C` / `#F97316`), Typography: Google Sans  
+**Design Tokens:** Canonical Forum identity: Cyan (`#007E8C`), Typography: Google Sans
+
+> **Current implementation note:** This document preserves the detailed domain
+> and production-schema proposal. The integrated portal uses the repository
+> React/Fluent UI baseline and cyan Forum identity; local persistence is
+> JSON-backed until the PostgreSQL migration is implemented.
 
 ---
 
@@ -51,7 +56,7 @@ The Forum operates as the central conversational and knowledge-transfer layer wi
    - Central Backend: `backend/src/modules/forum/` routes, controllers, services, repositories.
    - Central Database: `backend/database/schema/forum.sql` and `backend/database/seeds/forum_seed.sql`.
    - Shared Contracts: `packages/contracts/src/forum/`.
-   - Forum Application Frontend: `services/forum/` with Google Sans typography and Orange styling.
+   - Forum Application Frontend: `services/forum/` with shared Fluent UI, Google Sans typography, and Cyan identity.
 
 ---
 
@@ -577,7 +582,7 @@ cvs-garage/
         ├── index.html                   <-- Single-page forum entry point
         ├── src/
         │   ├── styles/
-        │   │   └── theme.css            <-- Orange palette (#EA580C) + Google Sans typography
+        │   │   └── theme.css            <-- legacy standalone-demo theme
         │   ├── components/              <-- Modular UI primitives and compound widgets
         │   ├── api/                     <-- API client with automatic fallbacks
         │   ├── state/                   <-- Reactive application store
@@ -598,7 +603,7 @@ cvs-garage/
    - Implement adapters for Member Management, Project Management, Event Management, Idea Centre, and Leaderboard.
    - Add unit/integration tests for vote deduplication, accepted answer status transitions, and duplicate export prevention.
 3. **Phase 3 (Frontend Design System & App Shell):**
-   - Set up `services/forum/` with Google Sans typography, modern Orange theme tokens, dark/light harmonious styling.
+   - Set up `services/forum/` with shared Fluent UI, Google Sans typography, Cyan identity, and light/dark/system behavior.
    - Build responsive 3-column navigation shell, header, and search bar.
 4. **Phase 4 (Core Workflows: Feed, Post Detail & Q&A Flow):**
    - Implement Post cards, voting micro-interactions with optimistic updates, bookmarking, and category filtering.

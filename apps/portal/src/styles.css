@@ -1,0 +1,60 @@
+:root {
+  font-family: "Google Sans", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body,
+#root,
+.cvs-theme-root {
+  min-height: 100vh;
+  margin: 0;
+}
+
+body {
+  background: #f5f5f5;
+}
+
+html[data-theme="dark"] body {
+  background: #292929;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.fatal-error {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--area-brand, #0f6cbd);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

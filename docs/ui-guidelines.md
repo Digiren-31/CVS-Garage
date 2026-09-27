@@ -1,9 +1,9 @@
 # UI and Theme Guidelines
 
 These guidelines are the design contract for the central portal and every
-service frontend. They define the shared visual language before application
-implementation begins. The portal maintainer owns this document and the future
-shared UI package, with changes reviewed by affected service teams.
+service frontend. They define the shared visual language implemented by the
+portal and shared UI package. The portal maintainer owns this document and
+`packages/ui`, with changes reviewed by affected service teams.
 
 ## Design principles
 
@@ -19,10 +19,8 @@ shared UI package, with changes reviewed by affected service teams.
 
 ## Component system
 
-Fluent UI is the required component and design-token system for all frontend
-areas. When the frontend stack is selected, use the current supported Fluent UI
-package for that stack. If React is selected, use Fluent UI React v9
-(`@fluentui/react-components`) rather than mixing Fluent UI generations.
+Fluent UI React v9 (`@fluentui/react-components`) is the required component and
+design-token system for all frontend areas. Do not mix Fluent UI generations.
 
 - Start with a Fluent component before creating a custom equivalent.
 - Compose or wrap Fluent primitives in `packages/ui` when behavior or styling is
@@ -34,9 +32,9 @@ package for that stack. If React is selected, use Fluent UI React v9
   radii, typography, or spacing.
 - Do not override Fluent internals or depend on generated class names.
 
-No Fluent dependency is installed during the directory-only phase. Package
-names, versions, setup, and executable validation belong to the future frontend
-stack decision.
+The dependency is owned by the portal workspace; service source is composed into
+that build and must consume the shared UI primitives instead of installing a
+parallel component system.
 
 ## Theme architecture
 
@@ -52,9 +50,9 @@ Theme layers, from broadest to narrowest:
 3. An area brand ramp supplies accent, selected, and primary-action colors.
 4. Components consume semantic or Fluent alias tokens, never raw palette values.
 
-The future shared UI package owns theme creation, semantic tokens, typography,
-mode handling, and shared primitives. Apps and services select an area theme at
-their root provider and must not redefine global token semantics locally.
+The shared UI package owns theme creation, semantic tokens, typography, mode
+handling, and shared primitives. The portal selects the area theme for the
+active route; services must not redefine global token semantics locally.
 
 ### Area identities
 
@@ -72,13 +70,11 @@ then validate every semantic token pairing for contrast.
 | Idea Centre | Coral | `#D83B01` | creative and optimistic |
 | Forum and Discussions | Cyan | `#007E8C` | conversational and open |
 
-**Pending review:** the Member Centre identity changed from Teal `#038387` to
-Forest green, with an off-white page surface, at the Member Centre team's
-request. The governance section below requires portal-maintainer review for
-identity changes; that review has not yet taken place. The Forest green seed is
-a starting value for ramp generation and contrast validation, not a final
-token — `#1E6B3F` is chosen because it carries a white-text contrast ratio above
-4.5:1 at its base, which a lighter forest green would not.
+**Decision:** Member Centre uses Forest green with a neutral off-white light
+surface. Forest green replaces the earlier Teal proposal and avoids conflicting
+with Forum's cyan identity. The `#1E6B3F` seed carries a white-text contrast
+ratio above 4.5:1 at its base; generated theme pairings still require automated
+and visual contrast validation.
 
 The off-white surface is an area-level preference and must be expressed through
 the neutral background tokens described in the theme architecture above. It does
@@ -193,7 +189,7 @@ require portal-maintainer review and consultation with affected service teams.
 Service-owned screens may compose shared primitives freely but must not fork the
 theme or duplicate common components to bypass shared review.
 
-Once implementation tooling exists, a frontend change is complete only when it:
+A frontend change is complete only when it:
 
 - uses the correct area theme through the shared provider;
 - has been checked in light, dark, and system modes;
@@ -202,5 +198,6 @@ Once implementation tooling exists, a frontend change is complete only when it:
 - has been inspected at representative mobile and desktop widths; and
 - introduces no raw visual values where an approved token exists.
 
-During the current directory-only phase, validation is limited to documentation
-links, instruction scopes, and consistency with repository ownership boundaries.
+Run the portal component tests, type-check, lint, and production build for
+frontend changes, then inspect representative mobile and desktop routes in the
+supported theme modes.

@@ -3,9 +3,9 @@
 **Status:** proposed design, pending backend-team and Member Centre-team review.
 **Owner:** backend team.
 
-Design-stage documents for the Member Management Service. The repository is at
-the structure-only phase, so these are specifications, not implementation: no
-database engine is selected, no migrations exist, and no dependencies are added.
+Production-hardening documents for the Member Centre domain. The runnable MVP
+uses a seeded local repository, so these remain specifications rather than
+executed migrations.
 
 | Document | Covers |
 | --- | --- |
@@ -29,14 +29,14 @@ admin portal and profile frontends that consume the API in document 03.
 
 ## Before implementation begins
 
-1. Agree the API shapes through
+1. Agree any remaining API shape changes through
    [packages/contracts](../../../packages/contracts/README.md). The contracts
    instructions require that endpoints and role names are not invented
    independently per service.
 2. Agree role names and permissions with the Member Centre team, as that area's
    instructions require.
-3. Select the database engine and migration tooling, then document validation
-   and rollback procedures per [database/README.md](../README.md).
+3. Select the PostgreSQL migration/ORM tooling, then document validation and
+   rollback procedures per [database/README.md](../README.md).
 4. Settle the open questions listed at the end of each document. The largest is
    the source of mentor eligibility metrics, which crosses into the Projects,
    Events, and Leaderboards areas.

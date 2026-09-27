@@ -1,6 +1,7 @@
 # Member Centre — API Architecture
 
-**Status:** proposed design. No endpoints are implemented.
+**Status:** production API proposal. The local MVP implements the core directory,
+stats, current-user, status, and mentor-management endpoints.
 **Owner:** backend team. Must be agreed with the Member Centre team through
 [packages/contracts](../../../packages/contracts/README.md) before implementation.
 **Related:** [schema](01-member-centre-schema.md) ·

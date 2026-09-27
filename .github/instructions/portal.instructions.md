@@ -9,4 +9,7 @@ applyTo: "apps/portal/**"
 - Follow the repository [UI and theme guidelines](../../docs/ui-guidelines.md)
 	for all frontend design and implementation.
 - Keep central navigation and publication maintainer-owned; service teams own domain implementation.
-- The current phase is structure only. Add UI or runtime setup only when explicitly requested.
+- Compose service frontends through their public `src/index.ts` entry points.
+  Keep domain behavior out of the portal shell.
+- Use the shared theme and API client. Validate responsive navigation, theme
+  modes, route behavior, component tests, type-check, and production build.

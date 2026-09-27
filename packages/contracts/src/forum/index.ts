@@ -166,6 +166,12 @@ export interface ForumPost {
   ideaExport?: IdeaCentreExportRef | null;
   isPinned: boolean;
   isLocked: boolean;
+  viewerPermissions?: {
+    canEdit: boolean;
+    canDelete: boolean;
+    canAcceptSolution: boolean;
+    canExport: boolean;
+  };
   createdAt: string;
   updatedAt: string;
 }

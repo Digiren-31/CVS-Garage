@@ -1,15 +1,21 @@
 # Projects
 
-**Intended owner:** Projects team; actual GitHub owners are not assigned yet.
-**Status:** structure only.
+**Owner:** Projects team. **Status:** integrated MVP.
 
-This is the Projects team's landing and working folder for the college portal.
-Detailed features and API requirements will be agreed in a later phase.
+The Projects frontend is composed by the central portal at `/projects`. It
+supports project discovery, search, progress and team visibility, proposal
+creation, project details, and milestone status updates for authorized users.
 
-## Start here
+The centralized backend exposes the domain below `/api/v1/projects` and stores
+synthetic local state in `backend/data/projects.json`.
 
-1. Read [INSTRUCTIONS.md](INSTRUCTIONS.md).
-2. Use the source directory, reserved by [src/.gitkeep](src/.gitkeep), for future implementation.
-3. Use the test directory, reserved by [tests/.gitkeep](tests/.gitkeep), for future tests.
+## Public frontend boundary
 
-No framework, UI, routes, API calls, or run/build/test commands are defined yet.
+`src/index.ts` exports `ProjectsPage`. The portal must import only that entry
+point. Projects code may consume shared UI, API client, and contracts but must
+not import another service's implementation.
+
+Run and validate from the repository root using the commands in
+[README.md](../../README.md). The detailed
+[architecture proposal](projects_architecture.md) remains a production data and
+workflow reference; the MVP intentionally implements its core vertical slice.
