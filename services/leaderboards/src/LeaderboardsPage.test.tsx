@@ -107,12 +107,11 @@ describe('LeaderboardsPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Campus contributors' })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('list', { name: 'Recent achievements' })
-    ).toHaveTextContent('HackSprint finalist');
-    expect(screen.getByRole('list', { name: 'Top contributors' })).toHaveTextContent(
-      'Rank 1'
-    );
+    const achievements = within(screen.getByRole('list', { name: 'Recent achievements' }));
+    expect(achievements.getByRole('heading', { name: 'HackSprint finalist', level: 3 })).toBeInTheDocument();
+    const podium = within(screen.getByRole('list', { name: 'Top contributors' }));
+    expect(podium.getByText('Rank 1')).toBeInTheDocument();
+    expect(podium.getByRole('heading', { name: 'Ananya Verma', level: 3 })).toBeInTheDocument();
 
     const table = screen.getByRole('table', { name: 'Leaderboard rankings' });
     expect(within(table).getByText('Ananya Verma')).toBeInTheDocument();

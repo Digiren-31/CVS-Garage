@@ -13,54 +13,156 @@ import {
 import type { PropsWithChildren, ReactNode } from 'react';
 import type { AreaId } from './theme';
 import { areaDetails } from './theme';
+import { glassTokens } from './glass';
 
 const useStyles = makeStyles({
   page: {
     display: 'grid',
-    gap: tokens.spacingVerticalXXL
+    minWidth: 0,
+    gap: tokens.spacingVerticalXXXL,
+    '& > *': {
+      minWidth: 0
+    }
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: tokens.spacingHorizontalL,
     flexWrap: 'wrap'
+  },
+  heading: {
+    flexGrow: 1,
+    flexBasis: '440px',
+    minWidth: 0,
+    display: 'grid',
+    gap: tokens.spacingVerticalS
+  },
+  title: {
+    margin: 0,
+    fontSize: tokens.fontSizeHero800,
+    lineHeight: tokens.lineHeightHero800,
+    fontWeight: tokens.fontWeightRegular,
+    overflowWrap: 'anywhere',
+    '@media (max-width: 700px)': {
+      fontSize: tokens.fontSizeHero700,
+      lineHeight: tokens.lineHeightHero700
+    }
+  },
+  actions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    flexShrink: 0,
+    maxWidth: '100%'
   },
   eyebrow: {
     color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em'
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    '::before': {
+      content: '""',
+      width: tokens.spacingHorizontalS,
+      height: tokens.spacingVerticalS,
+      borderRadius: tokens.borderRadiusCircular,
+      backgroundColor: tokens.colorBrandForeground1
+    }
   },
   subtitle: {
     color: tokens.colorNeutralForeground2,
-    maxWidth: '70ch'
+    maxWidth: '64ch'
   },
   metrics: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: tokens.spacingHorizontalM
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))',
+    gap: tokens.spacingHorizontalM,
+    minWidth: 0
   },
   metric: {
-    ...shorthands.padding(tokens.spacingVerticalL),
-    minHeight: '116px'
+    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalXL),
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    borderRadius: tokens.borderRadiusLarge,
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
+    minWidth: 0,
+    minHeight: '104px',
+    gap: tokens.spacingVerticalS
+  },
+  metricLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: tokens.spacingHorizontalS,
+    color: tokens.colorNeutralForeground2
+  },
+  metricIcon: {
+    color: tokens.colorBrandForeground1,
+    display: 'inline-flex',
+    flexShrink: 0
   },
   metricValue: {
     display: 'block',
     fontSize: tokens.fontSizeHero700,
     lineHeight: tokens.lineHeightHero700,
-    fontWeight: tokens.fontWeightSemibold
+    fontWeight: tokens.fontWeightRegular,
+    fontVariantNumeric: 'tabular-nums',
+    overflowWrap: 'anywhere'
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-    gap: tokens.spacingHorizontalL
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
+    gap: tokens.spacingHorizontalXL,
+    minWidth: 0,
+    alignItems: 'stretch',
+    '& > *': {
+      minWidth: 0
+    }
+  },
+  card: {
+    minWidth: 0,
+    height: '100%',
+    ...shorthands.padding(tokens.spacingVerticalL),
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    borderRadius: tokens.borderRadiusLarge,
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
+    gap: tokens.spacingVerticalM
+  },
+  cardTitle: {
+    overflowWrap: 'anywhere'
+  },
+  cardFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS,
+    marginTop: 'auto',
+    paddingTop: tokens.spacingVerticalS
   },
   panel: {
+    minWidth: 0,
     ...shorthands.padding(tokens.spacingVerticalL),
-    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+    ...shorthands.border('1px', 'solid', glassTokens.border),
     ...shorthands.borderRadius(tokens.borderRadiusLarge),
-    backgroundColor: tokens.colorNeutralBackground1
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow
+  },
+  badge: {
+    whiteSpace: 'normal',
+    height: 'auto',
+    minHeight: '24px',
+    flexShrink: 0,
+    maxWidth: '100%',
+    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalS),
+    textAlign: 'center',
+    overflowWrap: 'anywhere',
+    lineHeight: tokens.lineHeightBase200
   },
   state: {
     minHeight: '220px',
@@ -91,18 +193,18 @@ export function ServicePage({
 }>) {
   const styles = useStyles();
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-service-page={area}>
       <header className={styles.header}>
-        <div>
+        <div className={styles.heading}>
           <Text block size={200} className={styles.eyebrow}>
             {areaDetails[area].label}
           </Text>
-          <Title2 as="h1">{title}</Title2>
-          <Text block size={400} className={styles.subtitle}>
+          <Title2 as="h1" className={styles.title}>{title}</Title2>
+          <Text block size={300} className={styles.subtitle}>
             {description}
           </Text>
         </div>
-        {actions}
+        {actions ? <div className={styles.actions}>{actions}</div> : null}
       </header>
       {children}
     </div>
@@ -116,16 +218,21 @@ export function MetricGrid({ children }: PropsWithChildren) {
 export function MetricCard({
   label,
   value,
-  detail
+  detail,
+  icon
 }: {
   label: string;
   value: ReactNode;
   detail?: ReactNode;
+  icon?: ReactNode;
 }) {
   const styles = useStyles();
   return (
-    <Card className={styles.metric}>
-      <Text size={300}>{label}</Text>
+    <Card className={styles.metric} data-pointer-glow>
+      <div className={styles.metricLabel}>
+        <Text size={200}>{label}</Text>
+        {icon ? <span className={styles.metricIcon} aria-hidden="true">{icon}</span> : null}
+      </div>
       <Text className={styles.metricValue}>{value}</Text>
       {detail ? <Text size={200}>{detail}</Text> : null}
     </Card>
@@ -148,24 +255,26 @@ export function ContentCard({
   header?: ReactNode;
   footer?: ReactNode;
 }>) {
+  const styles = useStyles();
   return (
-    <Card>
+    <Card className={styles.card} data-pointer-glow>
       <CardHeader
-        header={<Text weight="semibold">{title}</Text>}
+        header={<Text weight="semibold" className={styles.cardTitle}>{title}</Text>}
         description={description ? <Text>{description}</Text> : undefined}
         action={header ? <div>{header}</div> : undefined}
       />
       {children}
-      {footer}
+      {footer ? <div className={styles.cardFooter}>{footer}</div> : null}
     </Card>
   );
 }
 
 export function Panel({ children }: PropsWithChildren) {
-  return <section className={useStyles().panel}>{children}</section>;
+  return <section className={useStyles().panel} data-pointer-glow>{children}</section>;
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const styles = useStyles();
   const normalized = status.toLowerCase();
   const color =
     normalized.includes('complete') || normalized.includes('active') || normalized.includes('registered')
@@ -176,7 +285,7 @@ export function StatusBadge({ status }: { status: string }) {
           ? 'warning'
           : 'informative';
 
-  return <Badge color={color}>{status}</Badge>;
+  return <Badge className={styles.badge} color={color} appearance="tint" shape="rounded">{status}</Badge>;
 }
 
 export function StatePanel({

@@ -1,7 +1,8 @@
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import type { DashboardSummary, Project } from '../../../packages/contracts/src';
 
 const members = [
   {
@@ -40,21 +41,34 @@ vi.mock('../../../packages/api-client/src', () => ({
   }
 }));
 
+const emptySummary: DashboardSummary = {
+  memberCount: 1,
+  activeProjectCount: 1,
+  upcomingEventCount: 1,
+  openIdeaCount: 1,
+  discussionCount: 1,
+  topContributor: null,
+  featuredProjects: [],
+  upcomingEvents: [],
+  recentIdeas: []
+};
+
+async function openDemoIdentity() {
+  fireEvent.click(screen.getByRole('button', { name: /Demo identity/ }));
+  return screen.findByRole('dialog', { name: 'Demo identity' });
+}
+
 describe('App', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    apiMock.getUserId.mockReturnValue('mem-student-1');
+    apiMock.setUserId.mockImplementation((userId: string) => apiMock.getUserId.mockReturnValue(userId));
     apiMock.listMembers.mockResolvedValue(members);
-    apiMock.getDashboard.mockResolvedValue({
-      memberCount: 1,
-      activeProjectCount: 1,
-      upcomingEventCount: 1,
-      openIdeaCount: 1,
-      discussionCount: 1,
-      topContributor: null,
-      featuredProjects: [],
-      upcomingEvents: [],
-      recentIdeas: []
-    });
+    apiMock.getDashboard.mockResolvedValue(emptySummary);
   });
+
+  afterEach(cleanup);
 
   it('renders the portal shell and dashboard', async () => {
     render(
@@ -65,12 +79,112 @@ describe('App', () => {
 
     expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', { name: 'Build, collaborate, and learn in one place' })
+      await screen.findByRole('heading', { name: 'Welcome in, Rahul.' })
     ).toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('link', {
         name: /Projects/
       })
     ).toHaveAttribute('href', '/projects');
+  });
+
+  it('keeps the overview focused without repeated workspace or profile sections', async () => {
+    render(<MemoryRouter><App /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Welcome in, Rahul.' });
+    const links = within(screen.getByRole('navigation', { name: 'Primary navigation' })).getAllByRole('link');
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/', '/projects', '/events', '/member-centre', '/leaderboards', '/idea-centre', '/forum'
+    ]);
+    expect(screen.queryByRole('region', { name: 'Your workspaces' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Rahul Sharma', level: 2 })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Find your people' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Ideas in motion' })).not.toBeInTheDocument();
+    expect(screen.getByText('No featured projects yet')).toBeInTheDocument();
+    expect(screen.getByText('New campus events will appear here when they are published.')).toBeInTheDocument();
+  });
+
+  it('shows a dashboard failure explicitly and lets the user retry', async () => {
+    apiMock.getDashboard.mockRejectedValueOnce(new Error('The campus API is unavailable.'));
+    render(<MemoryRouter><App /></MemoryRouter>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('The campus API is unavailable.');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('heading', { name: 'Welcome in, Rahul.' })).toBeInTheDocument();
+  });
+
+  it('persists an explicit theme choice and restores it on the next visit', async () => {
+    const { unmount } = render(<MemoryRouter><App /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Welcome in, Rahul.' });
+    fireEvent.click(screen.getByRole('button', { name: 'Theme: system. Switch to light.' }));
+    expect(window.localStorage.getItem('cvs-garage-theme')).toBe('light');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    fireEvent.click(screen.getByRole('button', { name: 'Theme: light. Switch to dark.' }));
+    expect(window.localStorage.getItem('cvs-garage-theme')).toBe('dark');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+
+    unmount();
+    render(<MemoryRouter><App /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Welcome in, Rahul.' });
+    fireEvent.click(screen.getByRole('button', { name: 'Theme: dark. Switch to system.' }));
+    expect(window.localStorage.getItem('cvs-garage-theme')).toBe('system');
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+  });
+
+  it('preserves the demo identity control and reloads identity-scoped content', async () => {
+    apiMock.listMembers.mockResolvedValue([
+      ...members,
+      { ...members[0], id: 'mem-student-2', name: 'Ananya Verma' }
+    ]);
+    render(<MemoryRouter><App /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Welcome in, Rahul.' });
+    await openDemoIdentity();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Development identity' }), {
+      target: { value: 'mem-student-2' }
+    });
+    expect(apiMock.setUserId).toHaveBeenCalledWith('mem-student-2');
+    await screen.findByRole('heading', { name: 'Welcome in, Ananya.' });
+    expect(apiMock.getDashboard).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses a first name rather than an honorific in the overview greeting', async () => {
+    apiMock.listMembers.mockResolvedValue([
+      { ...members[0], name: 'Dr. Priya Nair' }
+    ]);
+    render(<MemoryRouter><App /></MemoryRouter>);
+    expect(await screen.findByRole('heading', { name: 'Welcome in, Priya.' })).toBeInTheDocument();
+  });
+
+  it('limits project previews and links directly to each project page', async () => {
+    const project = (id: string, name: string, progress: number): Project => ({
+      id, name, progress, slug: id, tagline: 'A campus project', description: '',
+      category: 'Campus', status: 'active', leaderId: 'mem-student-1',
+      memberIds: ['mem-student-1'], tags: [], milestones: [], createdAt: '2026-09-01'
+    });
+    apiMock.getDashboard.mockResolvedValue({
+      ...emptySummary,
+      featuredProjects: [
+        project('alpha', 'Project Alpha', 60),
+        project('beta', 'Project Beta', 20),
+        project('gamma', 'Project Gamma', 10)
+      ]
+    });
+    apiMock.listMembers.mockResolvedValue([
+      ...members,
+      { ...members[0], id: 'mentor', name: 'Priya Nair', isMentor: true }
+    ]);
+    render(<MemoryRouter><App /></MemoryRouter>);
+    const projects = await screen.findByRole('region', { name: 'Featured projects' });
+    expect(within(projects).getByRole('progressbar', { name: 'Project Alpha' })).toHaveAttribute('aria-valuenow', '0.6');
+    expect(within(projects).getByRole('link', { name: 'Project Alpha' })).toHaveAttribute('href', '/projects/alpha');
+    expect(within(projects).getByRole('link', { name: 'Project Beta' })).toHaveAttribute('href', '/projects/beta');
+    expect(screen.queryByText('Project Gamma')).not.toBeInTheDocument();
+  });
+
+  it('does not invent progress or a member profile when their data is unavailable', async () => {
+    apiMock.listMembers.mockRejectedValueOnce(new Error('The member directory is unavailable.'));
+    render(<MemoryRouter><App /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Welcome in.' });
+    expect(screen.getByRole('alert')).toHaveTextContent('The member directory is unavailable.');
+    expect(within(screen.getByRole('region', { name: 'Featured projects' })).queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /active members are mentors/ })).not.toBeInTheDocument();
   });
 });

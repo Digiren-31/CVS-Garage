@@ -2,7 +2,6 @@ import {
   Badge,
   Button,
   Card,
-  CardHeader,
   Dropdown,
   Field,
   Input,
@@ -14,7 +13,8 @@ import {
   shorthands,
   tokens
 } from '@fluentui/react-components';
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useHref, useLinkClickHandler, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../../packages/api-client/src';
 import type { Event } from '../../../packages/contracts/src';
 import {
@@ -24,28 +24,80 @@ import {
   Panel,
   ServicePage,
   StatePanel,
-  StatusBadge
+  StatusBadge,
+  glassTokens
 } from '../../../packages/ui/src';
 
 const useStyles = makeStyles({
   toolbar: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(min(100%, 320px), 2fr) repeat(2, minmax(160px, 1fr))',
+    minWidth: 0,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
     alignItems: 'end',
     gap: tokens.spacingHorizontalM,
-    '@media (max-width: 760px)': {
+    '& > *': {
+      minWidth: 0
+    }
+  },
+  field: {
+    minWidth: 0,
+    maxWidth: '100%',
+    gridTemplateColumns: 'minmax(0, 1fr)'
+  },
+  control: {
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%'
+  },
+  search: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    minWidth: 0,
+    gap: tokens.spacingHorizontalS,
+    '@media (max-width: 600px)': {
       gridTemplateColumns: '1fr'
     }
   },
-  search: {
-    display: 'flex',
-    gap: tokens.spacingHorizontalS
-  },
   searchInput: {
-    flexGrow: 1
+    minWidth: 0,
+    width: '100%'
+  },
+  section: {
+    minWidth: 0
+  },
+  sectionHeading: {
+    display: 'grid',
+    minWidth: 0,
+    gap: tokens.spacingVerticalXS,
+    marginBottom: tokens.spacingVerticalM
+  },
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    height: '100%',
+    gap: tokens.spacingVerticalM,
+    overflowWrap: 'anywhere',
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    WebkitBackdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    ...shorthands.borderRadius(tokens.borderRadiusLarge),
+    ...shorthands.padding(tokens.spacingVerticalL)
+  },
+  cardHeading: {
+    display: 'grid',
+    minWidth: 0,
+    gap: tokens.spacingVerticalS
+  },
+  cardTitle: {
+    marginBlock: 0,
+    overflowWrap: 'anywhere'
   },
   cardBody: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalS
   },
   cardMeta: {
@@ -53,39 +105,67 @@ const useStyles = makeStyles({
   },
   badgeRow: {
     display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS
   },
+  tag: {
+    minWidth: 0,
+    maxWidth: '100%',
+    height: 'auto',
+    minHeight: tokens.lineHeightBase400,
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+    lineHeight: tokens.lineHeightBase200,
+    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalS)
+  },
   cardFooter: {
     display: 'flex',
+    minWidth: 0,
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: tokens.spacingHorizontalM,
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    marginTop: 'auto',
+    paddingTop: tokens.spacingVerticalM,
+    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2)
   },
   detail: {
     display: 'grid',
-    gap: tokens.spacingVerticalL
+    minWidth: 0,
+    gap: tokens.spacingVerticalL,
+    overflowWrap: 'anywhere',
+    '& > *': {
+      minWidth: 0
+    }
   },
   detailHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalM
+    gap: tokens.spacingHorizontalM,
+    minWidth: 0,
+    '& > *': {
+      minWidth: 0
+    }
   },
   detailGrid: {
     display: 'grid',
+    minWidth: 0,
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
     gap: tokens.spacingHorizontalL
   },
   detailBlock: {
     display: 'grid',
+    minWidth: 0,
     alignContent: 'start',
     gap: tokens.spacingVerticalXS
   },
   schedule: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalS,
     ...shorthands.margin(0),
     ...shorthands.padding(0),
@@ -93,16 +173,20 @@ const useStyles = makeStyles({
   },
   scheduleItem: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalXXS,
     ...shorthands.padding(tokens.spacingVerticalS, 0),
     ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke2)
   },
   capacity: {
     display: 'grid',
+    minWidth: 0,
+    alignContent: 'start',
     gap: tokens.spacingVerticalXS
   },
   actionArea: {
     display: 'flex',
+    minWidth: 0,
     alignItems: 'center',
     gap: tokens.spacingHorizontalM,
     flexWrap: 'wrap'
@@ -149,39 +233,74 @@ function registrationAvailability(event: Event) {
   return `${event.capacity - event.registrationCount} spots available`;
 }
 
-export function EventsPage() {
-  const styles = useStyles();
-  const [events, setEvents] = useState<Event[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [category, setCategory] = useState('All');
-  const [mode, setMode] = useState('All');
-  const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [busyEventId, setBusyEventId] = useState<string | null>(null);
+function EventNavigationLink({
+  to,
+  label,
+  children
+}: {
+  to: string;
+  label?: string;
+  children: string;
+}) {
+  const href = useHref(to);
+  const onClick = useLinkClickHandler<HTMLAnchorElement>(to);
+  return (
+    <Button as="a" href={href} onClick={onClick} appearance="secondary" aria-label={label}>
+      {children}
+    </Button>
+  );
+}
 
-  const loadEvents = useCallback(async (query = '') => {
-    setLoading(true);
-    setError(null);
-    try {
-      setEvents(await api.events.list(query));
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : 'Events could not be loaded.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+export function EventsPage() {
+  const { eventId } = useParams<{ eventId: string }>();
+  return eventId
+    ? <EventDetailPage key={eventId} eventId={eventId} />
+    : <EventDirectoryPage />;
+}
+
+function EventDirectoryPage() {
+  const styles = useStyles();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const submittedQuery = (searchParams.get('q') || '').trim();
+  const category = searchParams.get('category') || 'All';
+  const requestedMode = searchParams.get('mode') || 'All';
+  const mode = ['All', 'Online', 'Offline', 'Hybrid'].includes(requestedMode) ? requestedMode : 'All';
+  const [events, setEvents] = useState<Event[]>([]);
+  const [searchQuery, setSearchQuery] = useState(submittedQuery);
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void loadEvents();
-  }, [loadEvents]);
+    setSearchQuery(submittedQuery);
+  }, [submittedQuery]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    void (async () => {
+      try {
+        const nextEvents = await api.events.list(submittedQuery);
+        if (active) setEvents(nextEvents);
+      } catch (loadError) {
+        if (active) {
+          setError(loadError instanceof Error ? loadError.message : 'Events could not be loaded.');
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [submittedQuery, reload]);
 
   const categories = useMemo(
-    () => Array.from(new Set(events.map((event) => event.category))).sort(),
-    [events]
+    () => Array.from(new Set([
+      ...events.map((event) => event.category),
+      ...(category === 'All' ? [] : [category])
+    ])).sort(),
+    [events, category]
   );
 
   const visibleEvents = useMemo(
@@ -205,76 +324,21 @@ export function EventsPage() {
   ).length;
   const registeredCount = events.filter((event) => event.currentUserRegistration).length;
 
-  async function submitSearch(event: FormEvent<HTMLFormElement>) {
+  function updateFilter(name: 'q' | 'category' | 'mode', value: string) {
+    const next = new URLSearchParams(searchParams);
+    if (!value || (name !== 'q' && value === 'All')) {
+      next.delete(name);
+    } else {
+      next.set(name, value);
+    }
+    setSearchParams(next);
+  }
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSelectedEvent(null);
-    await loadEvents(searchQuery);
-  }
-
-  async function showDetails(eventId: string) {
-    setDetailLoading(true);
-    setActionError(null);
-    setActionMessage(null);
-    try {
-      setSelectedEvent(await api.events.get(eventId));
-    } catch (detailError) {
-      setActionError(
-        detailError instanceof Error ? detailError.message : 'Event details could not be loaded.'
-      );
-    } finally {
-      setDetailLoading(false);
-    }
-  }
-
-  async function refreshEvent(eventId: string) {
-    const [detail, refreshedEvents] = await Promise.all([
-      api.events.get(eventId),
-      api.events.list(searchQuery)
-    ]);
-    setSelectedEvent(detail);
-    setEvents(refreshedEvents);
-  }
-
-  async function register(event: Event) {
-    setBusyEventId(event.id);
-    setActionError(null);
-    setActionMessage(null);
-    try {
-      const registration = await api.events.register(event.id);
-      await refreshEvent(event.id);
-      setActionMessage(
-        registration.status === 'Waitlisted'
-          ? `You joined the waitlist for ${event.title}.`
-          : `You are registered for ${event.title}.`
-      );
-    } catch (registrationError) {
-      setActionError(
-        registrationError instanceof Error
-          ? registrationError.message
-          : 'Registration could not be completed.'
-      );
-    } finally {
-      setBusyEventId(null);
-    }
-  }
-
-  async function cancelRegistration(event: Event) {
-    setBusyEventId(event.id);
-    setActionError(null);
-    setActionMessage(null);
-    try {
-      await api.events.cancelRegistration(event.id);
-      await refreshEvent(event.id);
-      setActionMessage(`Your registration for ${event.title} was cancelled.`);
-    } catch (cancellationError) {
-      setActionError(
-        cancellationError instanceof Error
-          ? cancellationError.message
-          : 'The registration could not be cancelled.'
-      );
-    } finally {
-      setBusyEventId(null);
-    }
+    const normalizedQuery = searchQuery.trim();
+    if (normalizedQuery === submittedQuery) setReload((value) => value + 1);
+    updateFilter('q', normalizedQuery);
   }
 
   if (loading) {
@@ -287,7 +351,7 @@ export function EventsPage() {
         state="error"
         title="Events are unavailable"
         message={error}
-        onRetry={() => void loadEvents(searchQuery)}
+        onRetry={() => setReload((value) => value + 1)}
       />
     );
   }
@@ -307,7 +371,7 @@ export function EventsPage() {
 
       <Panel>
         <div className={styles.toolbar}>
-          <Field label="Search events">
+          <Field className={styles.field} label="Search events">
             <form className={styles.search} role="search" onSubmit={submitSearch}>
               <Input
                 className={styles.searchInput}
@@ -322,12 +386,14 @@ export function EventsPage() {
               </Button>
             </form>
           </Field>
-          <Field label="Category">
+          <Field className={styles.field} label="Category">
             <Dropdown
+              className={styles.control}
+              button={{ className: styles.control }}
               aria-label="Filter events by category"
               value={category}
               selectedOptions={[category]}
-              onOptionSelect={(_, data) => setCategory(data.optionValue || 'All')}
+              onOptionSelect={(_, data) => updateFilter('category', data.optionValue || 'All')}
             >
               <Option value="All">All categories</Option>
               {categories.map((option) => (
@@ -337,12 +403,14 @@ export function EventsPage() {
               ))}
             </Dropdown>
           </Field>
-          <Field label="Format">
+          <Field className={styles.field} label="Format">
             <Dropdown
+              className={styles.control}
+              button={{ className: styles.control }}
               aria-label="Filter events by format"
               value={mode}
               selectedOptions={[mode]}
-              onOptionSelect={(_, data) => setMode(data.optionValue || 'All')}
+              onOptionSelect={(_, data) => updateFilter('mode', data.optionValue || 'All')}
             >
               <Option value="All">All formats</Option>
               <Option value="Online">Online</Option>
@@ -353,60 +421,203 @@ export function EventsPage() {
         </div>
       </Panel>
 
-      {visibleEvents.length === 0 ? (
+      <section className={styles.section} aria-labelledby="event-directory-heading">
+        <div className={styles.sectionHeading}>
+          <Text as="h2" id="event-directory-heading" size={500} weight="semibold">
+            Event directory
+          </Text>
+          <Text className={styles.cardMeta}>
+            {visibleEvents.length} {visibleEvents.length === 1 ? 'event' : 'events'} shown
+          </Text>
+        </div>
+        {visibleEvents.length === 0 ? (
+          <StatePanel
+            state="empty"
+            title="No events match these filters"
+            message="Try another search, category, or format."
+          />
+        ) : (
+          <CardGrid>
+            {visibleEvents.map((event) => (
+              <Card
+                key={event.id}
+                className={styles.card}
+                role="article"
+                aria-labelledby={`event-title-${event.id}`}
+              >
+                <div className={styles.cardHeading}>
+                  <Text
+                    as="h3"
+                    id={`event-title-${event.id}`}
+                    size={400}
+                    weight="semibold"
+                    className={styles.cardTitle}
+                  >
+                    {event.title}
+                  </Text>
+                  <div className={styles.badgeRow}>
+                    <Text size={200} className={styles.cardMeta}>{event.organizerName}</Text>
+                    <StatusBadge status={event.status} />
+                  </div>
+                </div>
+                <div className={styles.cardBody}>
+                  <Text>{event.summary}</Text>
+                  <Text size={200} className={styles.cardMeta}>
+                    {formatDateTime(event.startsAt)} · {event.venue}
+                  </Text>
+                  <div className={styles.badgeRow} aria-label={`${event.title} tags`}>
+                    <Badge className={styles.tag} appearance="outline">{event.category}</Badge>
+                    <Badge className={styles.tag} appearance="outline">{event.mode}</Badge>
+                    {event.tags.slice(0, 2).map((tag) => (
+                      <Badge key={tag} className={styles.tag} appearance="tint">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className={styles.cardFooter}>
+                  <Text size={200} className={styles.cardMeta}>{registrationAvailability(event)}</Text>
+                  <EventNavigationLink
+                    to={`/events/${encodeURIComponent(event.id)}${location.search}`}
+                    label={`View details for ${event.title}`}
+                  >
+                    View details
+                  </EventNavigationLink>
+                </div>
+              </Card>
+            ))}
+          </CardGrid>
+        )}
+      </section>
+    </ServicePage>
+  );
+}
+
+function EventDetailPage({ eventId }: { eventId: string }) {
+  const styles = useStyles();
+  const location = useLocation();
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
+  const [error, setError] = useState<{ message: string; notFound: boolean } | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [busyEventId, setBusyEventId] = useState<string | null>(null);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    let active = true;
+    setLoading(true);
+    setError(null);
+    setSelectedEvent(null);
+    setActionError(null);
+    void (async () => {
+      try {
+        const event = await api.events.get(eventId);
+        if (active) setSelectedEvent(event);
+      } catch (requestError) {
+        if (active) {
+          setError({
+            message: requestError instanceof Error ? requestError.message : 'Event details could not be loaded.',
+            notFound: typeof requestError === 'object' && requestError !== null &&
+              'status' in requestError && requestError.status === 404
+          });
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+      mounted.current = false;
+    };
+  }, [eventId, reload]);
+
+  async function refreshEvent(id: string) {
+    const detail = await api.events.get(id);
+    if (mounted.current) setSelectedEvent(detail);
+  }
+
+  async function register(event: Event) {
+    setBusyEventId(event.id);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      const registration = await api.events.register(event.id);
+      if (!mounted.current) return;
+      await refreshEvent(event.id);
+      if (mounted.current) {
+        setActionMessage(
+          registration.status === 'Waitlisted'
+            ? `You joined the waitlist for ${event.title}.`
+            : `You are registered for ${event.title}.`
+        );
+      }
+    } catch (registrationError) {
+      if (mounted.current) {
+        setActionError(
+          registrationError instanceof Error
+            ? registrationError.message
+            : 'Registration could not be completed.'
+        );
+      }
+    } finally {
+      if (mounted.current) setBusyEventId(null);
+    }
+  }
+
+  async function cancelRegistration(event: Event) {
+    setBusyEventId(event.id);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      await api.events.cancelRegistration(event.id);
+      if (!mounted.current) return;
+      await refreshEvent(event.id);
+      if (mounted.current) {
+        setActionMessage(`Your registration for ${event.title} was cancelled.`);
+      }
+    } catch (cancellationError) {
+      if (mounted.current) {
+        setActionError(
+          cancellationError instanceof Error
+            ? cancellationError.message
+            : 'The registration could not be cancelled.'
+        );
+      }
+    } finally {
+      if (mounted.current) setBusyEventId(null);
+    }
+  }
+
+  return (
+    <ServicePage
+      area="events"
+      title={selectedEvent?.title || 'Event details'}
+      description={selectedEvent?.summary || 'Review the schedule, venue, and registration for this event.'}
+      actions={
+        <EventNavigationLink to={`/events${location.search}`}>
+          Back to events
+        </EventNavigationLink>
+      }
+    >
+      {loading ? (
+        <StatePanel state="loading" message="Loading event details" />
+      ) : error || !selectedEvent ? (
         <StatePanel
-          state="empty"
-          title="No events match these filters"
-          message="Try another search, category, or format."
+          state="error"
+          title={error?.notFound ? 'Event not found' : 'Event details unavailable'}
+          message={error?.message || 'This event could not be loaded.'}
+          onRetry={() => setReload((value) => value + 1)}
         />
       ) : (
-        <CardGrid>
-          {visibleEvents.map((event) => (
-            <Card key={event.id}>
-              <CardHeader
-                header={<Text weight="semibold">{event.title}</Text>}
-                description={<Text>{event.organizerName}</Text>}
-                action={<StatusBadge status={event.status} />}
-              />
-              <div className={styles.cardBody}>
-                <Text>{event.summary}</Text>
-                <Text className={styles.cardMeta}>
-                  {formatDateTime(event.startsAt)} · {event.venue}
-                </Text>
-                <div className={styles.badgeRow} aria-label={`${event.title} tags`}>
-                  <Badge appearance="outline">{event.category}</Badge>
-                  <Badge appearance="outline">{event.mode}</Badge>
-                  {event.tags.slice(0, 2).map((tag) => (
-                    <Badge key={tag} appearance="tint">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              <div className={styles.cardFooter}>
-                <Text>{registrationAvailability(event)}</Text>
-                <Button
-                  appearance="secondary"
-                  aria-label={`View details for ${event.title}`}
-                  onClick={() => void showDetails(event.id)}
-                >
-                  View details
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </CardGrid>
-      )}
-
-      {detailLoading ? <StatePanel state="loading" message="Loading event details" /> : null}
-
-      {selectedEvent && !detailLoading ? (
         <Panel>
           <section className={styles.detail} aria-labelledby="event-detail-heading">
             <div className={styles.detailHeader}>
               <div>
                 <Title3 as="h2" id="event-detail-heading">
-                  {selectedEvent.title}
+                  Event information
                 </Title3>
                 <Text block>{selectedEvent.description}</Text>
               </div>
@@ -487,20 +698,17 @@ export function EventsPage() {
                 </Text>
               ) : null}
               {actionError ? (
-                <Text className={styles.actionError} role="alert">
-                  {actionError}
-                </Text>
+                <>
+                  <Text className={styles.actionError} role="alert">{actionError}</Text>
+                  <Button appearance="subtle" onClick={() => setReload((value) => value + 1)}>
+                    Refresh event details
+                  </Button>
+                </>
               ) : null}
             </div>
           </section>
         </Panel>
-      ) : null}
-
-      {actionError && !selectedEvent ? (
-        <Text className={styles.actionError} role="alert">
-          {actionError}
-        </Text>
-      ) : null}
+      )}
     </ServicePage>
   );
 }

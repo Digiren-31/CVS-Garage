@@ -19,9 +19,11 @@ import {
 import { Toaster } from '@fluentui/react-components';
 import { AppShell } from './components/AppShell';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
-import { DashboardPage } from './pages/DashboardPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
+const DashboardPage = lazy(async () => ({
+  default: (await import('./pages/DashboardPage')).DashboardPage
+}));
 const ProjectsPage = lazy(async () => ({
   default: (await import('../../../services/projects/src')).ProjectsPage
 }));
@@ -57,7 +59,8 @@ function getStoredTheme(): ThemeMode {
   try {
     const value = window.localStorage.getItem('cvs-garage-theme');
     return value === 'light' || value === 'dark' || value === 'system' ? value : 'system';
-  } catch {
+  } catch (error) {
+    console.warn('The theme preference could not be restored. Using the system theme.', error);
     return 'system';
   }
 }
@@ -78,6 +81,7 @@ export function App() {
   const location = useLocation();
   const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredTheme);
   const [members, setMembers] = useState<Member[]>([]);
+  const [identityLoading, setIdentityLoading] = useState(true);
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [identityVersion, setIdentityVersion] = useState(0);
 
@@ -100,6 +104,9 @@ export function App() {
         if (active) {
           setIdentityError(error instanceof Error ? error.message : 'Member identities could not be loaded.');
         }
+      })
+      .finally(() => {
+        if (active) setIdentityLoading(false);
       });
     return () => {
       active = false;
@@ -110,8 +117,8 @@ export function App() {
     setThemeMode(nextMode);
     try {
       window.localStorage.setItem('cvs-garage-theme', nextMode);
-    } catch {
-      // Theme selection still applies for the current session.
+    } catch (error) {
+      console.warn('The theme preference could not be saved. It will apply for this session.', error);
     }
   }
 
@@ -131,23 +138,36 @@ export function App() {
                 members={members}
                 currentUserId={api.getUserId()}
                 identityError={identityError}
+                identityLoading={identityLoading}
                 themeMode={themeMode}
                 onThemeChange={updateTheme}
                 onIdentityChange={updateIdentity}
               />
             }
           >
-            <Route index element={<DashboardPage key={`dashboard-${identityVersion}`} />} />
+            <Route index element={<LazyService key={`dashboard-${identityVersion}`} component={DashboardPage} />} />
             <Route
-              path="projects/*"
+              path="projects"
               element={<LazyService key={`projects-${identityVersion}`} component={ProjectsPage} />}
             />
             <Route
-              path="events/*"
+              path="projects/:projectId"
+              element={<LazyService key={`projects-${identityVersion}`} component={ProjectsPage} />}
+            />
+            <Route
+              path="events"
               element={<LazyService key={`events-${identityVersion}`} component={EventsPage} />}
             />
             <Route
-              path="member-centre/*"
+              path="events/:eventId"
+              element={<LazyService key={`events-${identityVersion}`} component={EventsPage} />}
+            />
+            <Route
+              path="member-centre"
+              element={<LazyService key={`members-${identityVersion}`} component={MemberCentrePage} />}
+            />
+            <Route
+              path="member-centre/members/:memberId"
               element={<LazyService key={`members-${identityVersion}`} component={MemberCentrePage} />}
             />
             <Route
@@ -163,9 +183,13 @@ export function App() {
               element={<LazyService key={`ideas-${identityVersion}`} component={IdeaCentrePage} />}
             />
             <Route
-              path="forum/*"
+              path="forum"
               element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />}
             />
+            <Route path="forum/posts/:postId" element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />} />
+            <Route path="forum/communities" element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />} />
+            <Route path="forum/mentors" element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />} />
+            <Route path="forum/moderation" element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />} />
             <Route path="home" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>

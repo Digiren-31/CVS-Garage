@@ -1,88 +1,18 @@
-import {
-  Button,
-  Card,
-  CardHeader,
-  Text,
-  makeStyles,
-  shorthands,
-  tokens
-} from '@fluentui/react-components';
-import {
-  ArrowRight,
-  CalendarDays,
-  Lightbulb,
-  MessageSquareText,
-  PanelsTopLeft,
-  Trophy,
-  Users
-} from 'lucide-react';
+import { Card, ProgressBar, Text } from '@fluentui/react-components';
+import { domAnimation, LazyMotion, m, MotionConfig, useReducedMotion } from 'framer-motion';
+import { ArrowRight, CalendarDays, Lightbulb, PanelsTopLeft, Sparkles, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { api } from '../../../../packages/api-client/src';
 import type { DashboardSummary } from '../../../../packages/contracts/src';
-import {
-  CardGrid,
-  MetricCard,
-  MetricGrid,
-  ServicePage,
-  StatePanel,
-  StatusBadge
-} from '../../../../packages/ui/src';
-
-const useStyles = makeStyles({
-  sectionHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalM,
-    marginBottom: tokens.spacingVerticalM
-  },
-  serviceGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-    gap: tokens.spacingHorizontalM
-  },
-  serviceLink: {
-    color: 'inherit',
-    textDecorationLine: 'none'
-  },
-  serviceCard: {
-    height: '100%',
-    ...shorthands.padding(tokens.spacingVerticalL),
-    ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover
-    }
-  },
-  serviceIcon: {
-    width: '42px',
-    height: '42px',
-    display: 'grid',
-    placeItems: 'center',
-    ...shorthands.borderRadius(tokens.borderRadiusLarge),
-    color: tokens.colorNeutralForegroundOnBrand
-  },
-  row: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalM,
-    alignItems: 'center',
-    ...shorthands.padding(tokens.spacingVerticalS, 0),
-    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke2)
-  }
-});
-
-const serviceLinks = [
-  { to: '/projects', label: 'Projects', detail: 'Track delivery and milestones', icon: PanelsTopLeft, color: '#5b5fc7' },
-  { to: '/events', label: 'Events', detail: 'Discover campus opportunities', icon: CalendarDays, color: '#c239b3' },
-  { to: '/member-centre', label: 'Member Centre', detail: 'Find peers and mentors', icon: Users, color: '#1e6b3f' },
-  { to: '/leaderboards', label: 'Leaderboards', detail: 'Celebrate contribution', icon: Trophy, color: '#a15c00' },
-  { to: '/idea-centre', label: 'Idea Centre', detail: 'Shape ideas into teams', icon: Lightbulb, color: '#d83b01' },
-  { to: '/forum', label: 'Forum', detail: 'Ask, discuss, and solve', icon: MessageSquareText, color: '#007e8c' }
-];
+import { StatePanel, StatusBadge } from '../../../../packages/ui/src';
+import type { WorkspaceContext } from '../components/AppShell';
+import { useDashboardStyles } from './DashboardPage.styles';
 
 export function DashboardPage() {
-  const styles = useStyles();
-  const navigate = useNavigate();
+  const styles = useDashboardStyles();
+  const reducedMotion = useReducedMotion();
+  const { currentMember } = useOutletContext<WorkspaceContext>();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,134 +29,109 @@ export function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
-  if (loading) {
-    return <StatePanel state="loading" message="Loading the college innovation workspace" />;
-  }
+  if (loading) return <StatePanel state="loading" message="Loading the college innovation workspace" />;
+  if (error || !summary) return <StatePanel state="error" message={error || 'No overview is available.'} onRetry={load} />;
 
-  if (error || !summary) {
-    return <StatePanel state="error" message={error || 'No overview is available.'} onRetry={load} />;
-  }
+  const firstName = currentMember?.name.trim().replace(/^Dr\.\s+/i, '').split(/\s+/)[0];
 
   return (
-    <ServicePage
-      area="portal"
-      title="Build, collaborate, and learn in one place"
-      description="Move from an early idea to a supported project, find events and mentors, share solutions, and recognize the people contributing across campus."
-      actions={
-        <Button onClick={() => navigate('/idea-centre')} appearance="primary" icon={<Lightbulb size={18} />}>
-          Submit an idea
-        </Button>
-      }
-    >
-      <MetricGrid>
-        <MetricCard label="Community members" value={summary.memberCount} />
-        <MetricCard label="Active projects" value={summary.activeProjectCount} />
-        <MetricCard label="Upcoming events" value={summary.upcomingEventCount} />
-        <MetricCard label="Open ideas" value={summary.openIdeaCount} />
-        <MetricCard label="Forum discussions" value={summary.discussionCount} />
-      </MetricGrid>
-
-      <section aria-labelledby="service-heading">
-        <div className={styles.sectionHeader}>
-          <Text id="service-heading" size={600} weight="semibold">Explore the workspace</Text>
-        </div>
-        <div className={styles.serviceGrid}>
-          {serviceLinks.map(({ to, label, detail, icon: Icon, color }) => (
-            <Link key={to} to={to} className={styles.serviceLink}>
-              <Card className={styles.serviceCard}>
-                <div className={styles.serviceIcon} style={{ backgroundColor: color }}>
-                  <Icon size={22} aria-hidden="true" />
-                </div>
-                <Text block size={500} weight="semibold">{label}</Text>
-                <Text block>{detail}</Text>
-                <Text weight="semibold">Open <ArrowRight size={14} aria-hidden="true" /></Text>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section aria-labelledby="featured-heading">
-        <div className={styles.sectionHeader}>
-          <Text id="featured-heading" size={600} weight="semibold">Featured work</Text>
-          <Button onClick={() => navigate('/projects')} appearance="subtle">View projects</Button>
-        </div>
-        <CardGrid>
-          {summary.featuredProjects.map((project) => (
-            <Card key={project.id}>
-              <CardHeader
-                header={<Text weight="semibold">{project.name}</Text>}
-                description={<Text>{project.category}</Text>}
-                action={<StatusBadge status={project.status} />}
-              />
-              <Text>{project.tagline}</Text>
-              <Text size={200}>{project.progress}% complete · {project.memberIds.length} contributors</Text>
-            </Card>
-          ))}
-        </CardGrid>
-      </section>
-
-      <section aria-labelledby="activity-heading">
-        <div className={styles.sectionHeader}>
-          <Text id="activity-heading" size={600} weight="semibold">What is happening next</Text>
-          <Button onClick={() => navigate('/events')} appearance="subtle">All events</Button>
-        </div>
-        <Card>
-          {summary.upcomingEvents.map((event) => (
-            <div key={event.id} className={styles.row}>
-              <div>
-                <Text block weight="semibold">{event.title}</Text>
-                <Text block size={200}>{new Date(event.startsAt).toLocaleString()} · {event.venue}</Text>
-              </div>
-              <StatusBadge status={event.mode} />
+    <MotionConfig reducedMotion="user">
+      <LazyMotion features={domAnimation} strict>
+        <m.div
+          className={styles.page}
+          data-reference-dashboard
+          initial={reducedMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reducedMotion ? 0 : 0.24 }}
+        >
+          <header className={styles.heading} data-pointer-glow>
+            <div className={styles.headingCopy}>
+              <span className={styles.eyebrow}><Sparkles size={15} aria-hidden="true" /> The campus is yours to shape</span>
+              <h1 className={styles.title}>{firstName ? `Welcome in, ${firstName}.` : 'Welcome in.'}</h1>
+              <Text className={styles.headingDescription}>Pick up a project, or see what is happening on campus.</Text>
             </div>
-          ))}
-        </Card>
-      </section>
+            <div className={styles.heroArt} aria-hidden="true">
+              <div className={styles.orbit}>
+                <span className={styles.orbitNode}><PanelsTopLeft size={22} /></span>
+                <span className={styles.orbitNode}><Lightbulb size={22} /></span>
+                <span className={styles.orbitNode}><Users size={22} /></span>
+                <span className={styles.orbitNode}><CalendarDays size={22} /></span>
+                <img className={styles.orbitCenter} src="/garage-mark.svg" alt="" width="80" height="80" />
+              </div>
+            </div>
+          </header>
 
-      <section aria-labelledby="ideas-heading">
-        <div className={styles.sectionHeader}>
-          <Text id="ideas-heading" size={600} weight="semibold">Ideas looking for collaborators</Text>
-          <Button onClick={() => navigate('/idea-centre')} appearance="subtle">Explore ideas</Button>
-        </div>
-        <CardGrid>
-          {summary.recentIdeas.map((idea) => (
-            <Card key={idea.id}>
-              <CardHeader
-                header={<Text weight="semibold">{idea.title}</Text>}
-                description={<Text>{idea.track}</Text>}
-                action={<StatusBadge status={idea.status} />}
-              />
-              <Text>{idea.tagline}</Text>
-              <Text size={200}>
-                {idea.memberIds.length}/{idea.targetTeamSize} team members
-                {idea.seekingMentor ? ' · Seeking mentor' : ''}
-              </Text>
-            </Card>
-          ))}
-        </CardGrid>
-      </section>
+          <section aria-label="Campus at a glance">
+            <dl className={styles.stats}>
+              <div className={styles.stat} data-pointer-glow><dt className={styles.statLabel}><Users size={18} aria-hidden="true" />Community members</dt><dd className={styles.statValue}>{summary.memberCount}</dd></div>
+              <div className={styles.stat} data-pointer-glow><dt className={styles.statLabel}><PanelsTopLeft size={18} aria-hidden="true" />Active projects</dt><dd className={styles.statValue}>{summary.activeProjectCount}</dd></div>
+              <div className={styles.stat} data-pointer-glow><dt className={styles.statLabel}><CalendarDays size={18} aria-hidden="true" />Upcoming events</dt><dd className={styles.statValue}>{summary.upcomingEventCount}</dd></div>
+            </dl>
+          </section>
 
-      {summary.topContributor ? (
-        <section aria-labelledby="recognition-heading">
-          <div className={styles.sectionHeader}>
-            <Text id="recognition-heading" size={600} weight="semibold">Community recognition</Text>
-            <Button onClick={() => navigate('/leaderboards')} appearance="subtle">Open leaderboards</Button>
+          <div className={styles.sections}>
+            <section aria-labelledby="featured-heading">
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionHeading}><span className={styles.sectionIcon}><PanelsTopLeft size={18} aria-hidden="true" /></span><h2 id="featured-heading" className={styles.sectionTitle}>Featured projects</h2></div>
+                <Link className={styles.textLink} to="/projects">All projects <ArrowRight size={16} aria-hidden="true" /></Link>
+              </div>
+              <div className={styles.list}>
+                {summary.featuredProjects.slice(0, 2).map((project) => (
+                  <Card key={project.id} className={styles.card} data-pointer-glow>
+                    <div className={styles.cardHeader}>
+                      <Text size={200} className={styles.muted}>{project.category}</Text>
+                      <StatusBadge status={project.status.replaceAll('_', ' ')} />
+                    </div>
+                    <h3 className={styles.itemTitle}>
+                      <Link className={styles.itemLink} to={`/projects/${encodeURIComponent(project.id)}`}>{project.name}</Link>
+                    </h3>
+                    <Text className={styles.description}>{project.tagline}</Text>
+                    <div className={styles.progress}>
+                      <div className={styles.cardHeader}>
+                        <Text size={200}>{project.memberIds.length} contributors</Text>
+                        <Text size={200}>{project.progress}% complete</Text>
+                      </div>
+                      <ProgressBar aria-label={project.name} value={project.progress / 100} />
+                    </div>
+                    <Link className={styles.textLink} to={`/projects/${encodeURIComponent(project.id)}`}>View project <ArrowRight size={16} aria-hidden="true" /></Link>
+                  </Card>
+                ))}
+                {summary.featuredProjects.length === 0 ? <StatePanel state="empty" title="No featured projects yet" message="Your next project could start here." /> : null}
+              </div>
+            </section>
+
+            <section aria-labelledby="agenda-heading">
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionHeading}><span className={styles.sectionIcon}><CalendarDays size={18} aria-hidden="true" /></span><h2 id="agenda-heading" className={styles.sectionTitle}>Coming up</h2></div>
+                <Link className={styles.textLink} to="/events">All events <ArrowRight size={16} aria-hidden="true" /></Link>
+              </div>
+              <div className={styles.list}>
+                {summary.upcomingEvents.slice(0, 2).map((event) => {
+                  const date = new Date(event.startsAt);
+                  return (
+                    <Card key={event.id} className={styles.card} data-pointer-glow>
+                      <time className={styles.eventDate} dateTime={event.startsAt}>
+                        <CalendarDays size={15} aria-hidden="true" />
+                        {date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
+                        {' · '}{date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                      </time>
+                      <h3 className={styles.itemTitle}>
+                        <Link className={styles.itemLink} to={`/events/${encodeURIComponent(event.id)}`}>{event.title}</Link>
+                      </h3>
+                      <Text className={styles.description}>{event.summary}</Text>
+                      <Text size={200} className={styles.muted}>{event.venue} · {event.mode}</Text>
+                      <Link className={styles.textLink} to={`/events/${encodeURIComponent(event.id)}`}>View event <ArrowRight size={16} aria-hidden="true" /></Link>
+                    </Card>
+                  );
+                })}
+                {summary.upcomingEvents.length === 0 ? <StatePanel state="empty" title="Nothing scheduled just yet" message="New campus events will appear here when they are published." /> : null}
+              </div>
+            </section>
           </div>
-          <Card>
-            <CardHeader
-              header={<Text weight="semibold">{summary.topContributor.memberName}</Text>}
-              description={<Text>{summary.topContributor.department}</Text>}
-              action={<StatusBadge status={`${summary.topContributor.score} points`} />}
-            />
-            <Text>Leading this scoring period through verified project, event, idea, and forum contributions.</Text>
-          </Card>
-        </section>
-      ) : null}
-    </ServicePage>
+        </m.div>
+      </LazyMotion>
+    </MotionConfig>
   );
 }

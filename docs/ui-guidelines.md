@@ -17,6 +17,52 @@ portal and shared UI package. The portal maintainer owns this document and
   prerequisite for understanding or completing a task.
 - Meet WCAG 2.2 AA as a baseline in both light and dark modes.
 
+## Liquid glass visual direction
+
+The portal and all six services share a minimal monochrome workspace: a pure
+white canvas in light mode and a pitch-black canvas in dark mode, with neutral
+panels, fine borders, and clear area-colored functional accents. Subtle warm
+and violet gradients may sit above those base colors as decoration; glass
+treatments must not compromise contrast.
+
+- Retain the supplied reference's horizontal pill navigation, lightweight
+  headings, soft surfaces, and rounded panels without reproducing its density.
+  Favor fewer, well-spaced sections over fitting every feature onto one page.
+  The application itself fills the screen rather
+  than reproducing the reference image's inset presentation frame. Do not bring
+  back an oversized marketing hero or a permanent desktop sidebar.
+- Keep the shell edge-to-edge, with no maximum-width cap, exterior gutters,
+  rounded outer corners, or frame shadow. Its minimum height is the dynamic
+  viewport height. Interior panels retain their spacing, rounded corners,
+  light inset highlights, soft translucency, and minimal borders.
+- Keep each service's assigned palette below for active navigation and actions.
+  The portal uses neutral UI accents; its multicolored, circuit-inspired garage
+  mark stays in the logo, not scattered through backgrounds or decorative effects.
+- Shared glass values live in [glass.ts](../packages/ui/src/glass.ts).
+  Use `glassTokens` for surfaces, blur, borders, shadows, gradients, and
+  illustration treatments; use Fluent tokens for typography, spacing, shape,
+  and controls.
+- Theme-aware area icon colors and subtle fills come from `areaTokens(area)`.
+  Identity seeds are not readable foreground colors in every mode.
+- Keep content and controls crisp. Use blur on the background, not on text.
+  Dense content, menus, and form controls retain strong, legible surfaces.
+- The overview contains a short greeting, three campus counts, and at most two
+  featured project and two upcoming event previews. Do not duplicate global
+  navigation with a workspace section or add an oversized personal profile,
+  mentor ring, or multiple activity boards. Project progress remains real API data.
+- Discovery cards are previews, not embedded detail pages. Titles and view
+  actions link to the individual record. Full descriptions, replies, membership
+  controls, and administrative actions belong on the appropriate detail page.
+- When backdrop filters are unavailable or reduced transparency is requested,
+  use opaque surfaces. Forced-color mode removes decorative imagery and
+  preserves system colors and control boundaries.
+- Pointer-following glow is decorative only. Limit it to fine hover pointers,
+  keep it behind content and non-interactive, and disable it for reduced motion,
+  reduced transparency, touch, and forced colors.
+- Scope full-page sizing and backgrounds to the application root. Fluent
+  portal providers also inherit the provider class; tooltips and dialogs must
+  never become full-screen opaque layers because of root styling.
+
 ## Component system
 
 Fluent UI React v9 (`@fluentui/react-components`) is the required component and
@@ -26,8 +72,9 @@ design-token system for all frontend areas. Do not mix Fluent UI generations.
 - Compose or wrap Fluent primitives in `packages/ui` when behavior or styling is
   reused by multiple areas.
 - Keep domain-specific compositions and screens in their owning app or service.
-- Use Fluent icons through the package appropriate to the selected stack. Do not
-  maintain hand-drawn copies of icons already available there.
+- Keep the runtime's existing Lucide icon set consistent alongside Fluent
+  components. Do not introduce a competing icon set or maintain hand-drawn
+  copies of available icons.
 - Use Fluent design tokens instead of component-level literal colors, shadows,
   radii, typography, or spacing.
 - Do not override Fluent internals or depend on generated class names.
@@ -53,6 +100,9 @@ Theme layers, from broadest to narrowest:
 The shared UI package owns theme creation, semantic tokens, typography, mode
 handling, and shared primitives. The portal selects the area theme for the
 active route; services must not redefine global token semantics locally.
+Each identity has a complete brand ramp with distinct hover and pressed states.
+Shared theme tests verify text, brand action, focus, and control-border contrast
+in every area and mode.
 
 ### Area identities
 
@@ -76,9 +126,8 @@ with Forum's cyan identity. The `#1E6B3F` seed carries a white-text contrast
 ratio above 4.5:1 at its base; generated theme pairings still require automated
 and visual contrast validation.
 
-The off-white surface is an area-level preference and must be expressed through
-the neutral background tokens described in the theme architecture above. It does
-not redefine what those tokens mean, and other areas are unaffected.
+The earlier Member Centre off-white canvas is superseded by the shared pure-white
+light canvas; its forest-green identity remains in functional accents.
 
 Area accents should be visible in primary actions, active navigation, focus
 details, small highlights, and selected states. Keep primary surfaces neutral;
@@ -99,9 +148,11 @@ Light and dark themes are equal product requirements, not a generated inversion.
   colors in each mode; do not invert media indiscriminately.
 - Use token-based transitions only after the initial theme is resolved.
 
-Do not use pure black as the default dark surface or pure white for every light
-surface. Fluent neutral tokens should provide layered, readable surfaces without
-turning page sections into stacks of floating cards.
+Use `#000000` for the dark page canvas and `#ffffff` for the light page canvas.
+Panels and controls may use adjacent neutral shades to remain distinct. Restrained
+warm/violet gradient overlays and hover glows may add depth, but never replace the
+base colors, tint neutral surfaces blue, or obscure content. Reduced transparency
+and forced-color modes remove the decorative canvas gradients.
 
 ## Typography
 
@@ -111,11 +162,17 @@ Fluent typography tokens so scale, line height, and weight remain consistent.
 Recommended family stack:
 
 ```css
-"Google Sans", "Segoe UI", sans-serif
+"Google Sans", "Avenir Next", "Segoe UI", sans-serif
 ```
 
 - Use Google Sans for interface text and display headings; use a monospace face
   only where content is genuinely code or fixed-width data.
+- Use regular-weight page headings and numeric summaries. The shared hierarchy
+  uses 400 for regular text, 500 for semibold labels, and 600 for stronger
+  emphasis. Avoid broad use of heavy display weights.
+- Desktop page headings use the 32-pixel/42-pixel token pair, with smaller
+  headings on narrow screens. The platform-provided Avenir Next fallback keeps
+  a rounded, geometric feel on macOS without adding or downloading font assets.
 - Keep body text at least 16 CSS pixels by default and preserve comfortable line
   height. Compact data-dense controls may use the supported Fluent body-small
   token where readability remains strong.
@@ -135,18 +192,73 @@ is the expected rendering rather than a copied substitute.
 ## Layout and visual treatment
 
 - Use a shared spacing scale based on Fluent tokens; avoid one-off spacing values.
-- Prefer full-width page regions and unframed layouts. Reserve cards for repeated
-  items, dialogs, and genuinely bounded tools; never nest cards for decoration.
-- Keep card corner radii at 8 CSS pixels or less unless a Fluent component's
-  standard token requires otherwise.
+- Prefer simple page regions. Reserve glass cards for repeated items, the
+  landing composition, dialogs, and genuinely bounded tools; never nest cards
+  for decoration.
+- Use the shared shape tokens: 16-pixel controls, 24-pixel cards, and 32-pixel
+  large feature panels. Navigation pills and small tags use the circular token. Do not hard-code
+  competing radii in individual services.
 - Maintain stable control, toolbar, grid, and media dimensions so loading or
   interaction states do not shift the layout.
 - Design mobile and desktop layouts together. Navigation, tables, forms, and
   dialogs must remain usable without clipped or overlapping text.
+- Give grid and flex children a zero minimum width where they must shrink.
+  Wrap filters, tags, statuses, and actions; use deliberate internal scrollers
+  for wide tables instead of making the document overflow.
+- Use a relaxed two-column overview at desktop widths and stack its sections
+  at 1000 pixels and below. Shared discovery cards target a minimum width of
+  360 pixels where available and reflow to one column on small screens.
+  Keep useful whitespace; do not add widgets simply to fill the viewport.
+- Align card footers and action rows, preserve readable long titles, and use a
+  consistent tinted status treatment. A status badge must not squeeze a title
+  into a narrow column.
 - Use icons for familiar compact actions and pair unfamiliar icons with an
   accessible name and tooltip. Use text or icon-plus-text for important commands.
-- Avoid decorative gradients, glowing blobs, and excessive shadows. Photography,
-  illustrations, and other assets must clarify real content or identity.
+- Keep the approved canvas gradients and hover glows subtle. Avoid excessive
+  shadows, distracting glowing blobs, or continuous decorative motion.
+  Illustrations and other assets must clarify content or product identity.
+
+## Workspace navigation
+
+- Desktop navigation is a horizontal group of pill-shaped route links in the
+  header. Each link retains its area's color accent; the selected pill uses the
+  area's solid brand color and readable on-brand text. These are navigation
+  links, not an ARIA tablist.
+- The header toggle collapses labels into a compact horizontal icon strip.
+  Preserve all seven destinations, the current-page state, accessible names,
+  and descriptive tooltips in both states.
+- Persist the explicit desktop choice in `cvs-garage-sidebar`. If storage is
+  unavailable, log the failure and keep navigation working for the session.
+  The legacy key is retained so existing preferences survive the redesign.
+- At mobile widths, use a labelled Fluent modal drawer with focus containment,
+  Escape and backdrop dismissal, and a visible close action. Desktop collapse
+  preferences must not truncate the mobile drawer.
+- Close the drawer when navigating. Restore focus to the toggle on dismissal
+  and move focus to the main content when a route changes.
+- Keep a single header button that cycles System → Light → Dark → System, with
+  an accessible name identifying the current and next mode. The synthetic
+  identity selector lives behind the Demo avatar at every width; its popover
+  supports keyboard focus and dismissal. Label it and the application footer
+  as demo tooling, not authentication.
+- Do not move focus into the main content on initial load. Route changes and
+  the skip link still focus the main content deliberately. New route paths
+  start at the top of the page rather than retaining a scrolled list position.
+
+## Collection and detail pages
+
+- Give projects, events, ideas, member profiles, and Forum discussions their
+  own addressable pages. Do not append selected details below the discovery list.
+- Detail pages have an item-specific heading and a clear return link, including
+  during loading, errors, or missing-item states. Do not show unrelated search
+  controls, directory cards, aggregate statistics, or discovery sidebars there.
+- Keep list search/filter choices in query parameters and retain them in item
+  links and return links. Direct URLs, refresh, and browser history must work.
+- Fetch a requested item independently of a narrowed list. When a domain's
+  existing API only exposes a collection, resolve the ID from an unfiltered
+  response, not the current search results.
+- Ignore stale responses after navigation; never display one item's details
+  under another item's URL. Preserve all mutation permissions and explicit
+  action feedback when moving controls from a list to a detail page.
 
 ## Interaction and motion
 
@@ -165,6 +277,11 @@ Use a small motion vocabulary throughout the repository:
 - Honor `prefers-reduced-motion`. Remove nonessential movement and use immediate
   state changes or brief fades without losing information.
 - Never delay input, navigation, or task completion to finish an animation.
+- The overview uses Framer Motion for a short 240 ms entrance. It does not loop.
+  Reduced-motion mode removes
+  entrances and transforms without hiding content.
+- Load the landing page and its animation code as a route chunk so service-only
+  visits do not download the landing animation implementation.
 
 ## Accessibility and content
 

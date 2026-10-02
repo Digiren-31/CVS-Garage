@@ -19,13 +19,16 @@ import {
   MetricCard,
   MetricGrid,
   ServicePage,
-  StatePanel
+  StatePanel,
+  glassTokens
 } from '../../../packages/ui/src';
 import { CustomLeaderboard } from './CustomLeaderboard';
 
 const useStyles = makeStyles({
   section: {
     display: 'grid',
+    minWidth: 0,
+    overflowWrap: 'anywhere',
     gap: tokens.spacingVerticalL
   },
   sectionHeading: {
@@ -33,63 +36,144 @@ const useStyles = makeStyles({
     alignItems: 'baseline',
     justifyContent: 'space-between',
     gap: tokens.spacingHorizontalM,
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    minWidth: 0,
+    '& > *': {
+      minWidth: 0
+    }
   },
   secondaryText: {
     color: tokens.colorNeutralForeground2
   },
   metadata: {
     display: 'flex',
+    minWidth: 0,
+    overflowWrap: 'anywhere',
     alignItems: 'center',
     gap: tokens.spacingHorizontalS,
     flexWrap: 'wrap'
   },
   achievementList: {
     display: 'grid',
+    minWidth: 0,
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: tokens.spacingHorizontalM,
     listStyleType: 'none',
     marginTop: 0,
     marginBottom: 0,
-    paddingLeft: 0
+    paddingLeft: 0,
+    '& > li': {
+      minWidth: 0
+    }
   },
   achievementCard: {
+    minWidth: 0,
     height: '100%',
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    WebkitBackdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    ...shorthands.borderRadius(tokens.borderRadiusLarge),
     ...shorthands.padding(tokens.spacingVerticalL)
   },
   achievementIdentity: {
     display: 'flex',
-    alignItems: 'center',
+    minWidth: 0,
+    alignItems: 'flex-start',
     gap: tokens.spacingHorizontalS
   },
+  identityCopy: {
+    minWidth: 0
+  },
+  cardTitle: {
+    marginBlock: 0,
+    overflowWrap: 'anywhere'
+  },
   achievementContent: {
-    display: 'grid',
-    gap: tokens.spacingVerticalS
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    flexGrow: 1,
+    gap: tokens.spacingVerticalM
+  },
+  achievementFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS,
+    minWidth: 0,
+    marginTop: 'auto',
+    paddingTop: tokens.spacingVerticalM,
+    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2)
   },
   context: {
     display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
     gap: tokens.spacingHorizontalXS,
     flexWrap: 'wrap'
   },
   podiumList: {
     display: 'grid',
+    minWidth: 0,
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
     gap: tokens.spacingHorizontalM,
     listStyleType: 'none',
     marginTop: 0,
     marginBottom: 0,
-    paddingLeft: 0
+    paddingLeft: 0,
+    '& > li': {
+      minWidth: 0
+    }
   },
   podiumCard: {
-    display: 'grid',
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
     gap: tokens.spacingVerticalS,
-    justifyItems: 'center',
+    alignItems: 'center',
     textAlign: 'center',
     height: '100%',
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    WebkitBackdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
     ...shorthands.padding(tokens.spacingVerticalL),
-    ...shorthands.borderTop('4px', 'solid', tokens.colorBrandStroke1)
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    ...shorthands.borderRadius(tokens.borderRadiusLarge)
+  },
+  podiumScore: {
+    display: 'grid',
+    minWidth: 0,
+    gap: tokens.spacingVerticalXXS,
+    marginTop: 'auto',
+    paddingTop: tokens.spacingVerticalS
+  },
+  rankings: {
+    minWidth: 0,
+    maxWidth: '100%',
+    // Keep the service layout shrinkable while the table uses its own scroller.
+    '& > section, & > section > form > div': {
+      minWidth: 0,
+      gridTemplateColumns: 'minmax(0, 1fr)'
+    },
+    '& > section > form': {
+      minWidth: 0
+    }
+  },
+  tag: {
+    minWidth: 0,
+    maxWidth: '100%',
+    height: 'auto',
+    minHeight: tokens.lineHeightBase400,
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+    lineHeight: tokens.lineHeightBase200,
+    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalS)
   },
   empty: {
+    minWidth: 0,
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     ...shorthands.borderRadius(tokens.borderRadiusLarge),
     ...shorthands.padding(tokens.spacingVerticalL),
@@ -164,7 +248,7 @@ export function LeaderboardsPage() {
       </MetricGrid>
 
       <div className={styles.metadata}>
-        <Badge appearance="outline">
+        <Badge className={styles.tag} appearance="outline">
           Scoring policy: {leaderboard.scoringPolicyVersion}
         </Badge>
         <Text className={styles.secondaryText}>
@@ -185,10 +269,12 @@ export function LeaderboardsPage() {
           message="Contributions will appear after the scoring service records eligible activity."
         />
       ) : (
-        <CustomLeaderboard
-          entries={leaderboard.entries}
-          filterOptions={leaderboard.filters}
-        />
+        <div className={styles.rankings}>
+          <CustomLeaderboard
+            entries={leaderboard.entries}
+            filterOptions={leaderboard.filters}
+          />
+        </div>
       )}
     </ServicePage>
   );
@@ -228,28 +314,30 @@ function AchievementsSection({
                 <div className={styles.achievementContent}>
                   <div className={styles.achievementIdentity}>
                     <Avatar name={achievement.memberName} size={36} />
-                    <div>
-                      <Text block weight="semibold">
+                    <div className={styles.identityCopy}>
+                      <Text as="h3" block size={400} weight="semibold" className={styles.cardTitle}>
                         {achievement.title}
                       </Text>
-                      <Text block className={styles.secondaryText}>
+                      <Text block size={200} className={styles.secondaryText}>
                         {achievement.memberName}
                       </Text>
                     </div>
                   </div>
                   <Text>{achievement.description}</Text>
-                  <Text size={200} className={styles.secondaryText}>
-                    <time dateTime={achievement.achievedAt}>
-                      {formatDateTime(achievement.achievedAt)}
-                    </time>
-                  </Text>
-                  <div className={styles.context}>
-                    {achievement.eventId ? (
-                      <Badge appearance="outline">Event {achievement.eventId}</Badge>
-                    ) : null}
-                    {achievement.projectId ? (
-                      <Badge appearance="outline">Project {achievement.projectId}</Badge>
-                    ) : null}
+                  <div className={styles.achievementFooter}>
+                    <Text size={200} className={styles.secondaryText}>
+                      <time dateTime={achievement.achievedAt}>
+                        {formatDateTime(achievement.achievedAt)}
+                      </time>
+                    </Text>
+                    <div className={styles.context}>
+                      {achievement.eventId ? (
+                        <Badge className={styles.tag} appearance="outline">Event {achievement.eventId}</Badge>
+                      ) : null}
+                      {achievement.projectId ? (
+                        <Badge className={styles.tag} appearance="outline">Project {achievement.projectId}</Badge>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </Card>
@@ -285,7 +373,7 @@ function PodiumSection({ entries }: { entries: readonly LeaderboardEntry[] }) {
           {entries.map((entry) => (
             <li key={entry.memberId}>
               <Card className={styles.podiumCard}>
-                <Badge appearance="filled" color="brand">
+                <Badge className={styles.tag} appearance="tint" color="brand">
                   Rank {entry.rank}
                 </Badge>
                 <Avatar
@@ -293,13 +381,14 @@ function PodiumSection({ entries }: { entries: readonly LeaderboardEntry[] }) {
                   image={entry.avatarUrl ? { src: entry.avatarUrl } : undefined}
                   size={64}
                 />
-                <Text size={500} weight="semibold">
+                <Text as="h3" size={400} weight="semibold" className={styles.cardTitle}>
                   {entry.memberName}
                 </Text>
-                <Text className={styles.secondaryText}>{entry.department}</Text>
-                <Text weight="semibold">
-                  {entry.score} points · {entry.starRating} / 5 stars
-                </Text>
+                <Text size={200} className={styles.secondaryText}>{entry.department}</Text>
+                <div className={styles.podiumScore}>
+                  <Text size={600} weight="semibold">{entry.score} points</Text>
+                  <Text size={200} className={styles.secondaryText}>{entry.starRating} / 5 stars</Text>
+                </div>
               </Card>
             </li>
           ))}

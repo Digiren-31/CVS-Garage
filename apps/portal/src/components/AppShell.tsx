@@ -1,57 +1,55 @@
 import {
+  Avatar,
   Button,
+  Field,
+  OverlayDrawer,
+  Popover,
+  PopoverSurface,
+  PopoverTrigger,
   Select,
   Text,
   Tooltip,
   makeStyles,
+  mergeClasses,
   shorthands,
   tokens
 } from '@fluentui/react-components';
-import {
-  CalendarDays,
-  Home,
-  Lightbulb,
-  Menu,
-  MessageSquareText,
-  MoonStar,
-  PanelsTopLeft,
-  Trophy,
-  Users,
-  X
-} from 'lucide-react';
-import { useEffect, useState, type ChangeEvent } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { ChevronDown, ChevronUp, FlaskConical, Menu, Monitor, Moon, Sun, X } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import type { Member } from '../../../../packages/contracts/src';
-import {
-  areaDetails,
-  type AreaId,
-  type ThemeMode
-} from '../../../../packages/ui/src';
-
-const navigation: Array<{
-  to: string;
-  label: string;
-  description: string;
-  area: AreaId;
-  icon: typeof Home;
-}> = [
-  { to: '/', label: 'Overview', description: 'Portal dashboard', area: 'portal', icon: Home },
-  { to: '/projects', label: 'Projects', description: 'Build and showcase', area: 'projects', icon: PanelsTopLeft },
-  { to: '/events', label: 'Events', description: 'Discover and register', area: 'events', icon: CalendarDays },
-  { to: '/member-centre', label: 'Member Centre', description: 'Profiles and mentors', area: 'member-centre', icon: Users },
-  { to: '/leaderboards', label: 'Leaderboards', description: 'Recognize contribution', area: 'leaderboards', icon: Trophy },
-  { to: '/idea-centre', label: 'Idea Centre', description: 'Propose and collaborate', area: 'idea-centre', icon: Lightbulb },
-  { to: '/forum', label: 'Forum', description: 'Discuss and solve', area: 'forum', icon: MessageSquareText }
-];
+import { areaTokens, glassTokens, useMediaQuery, type ThemeMode } from '../../../../packages/ui/src';
+import { workspaceNavigation } from './navigation';
 
 const useStyles = makeStyles({
   root: {
-    minHeight: '100vh',
-    display: 'grid',
-    gridTemplateColumns: '280px minmax(0, 1fr)',
-    backgroundColor: tokens.colorNeutralBackground2,
-    '@media (max-width: 900px)': {
-      gridTemplateColumns: '1fr'
+    minHeight: '100dvh',
+    backgroundColor: glassTokens.canvas,
+    padding: 0
+  },
+  frame: {
+    width: '100%',
+    minHeight: '100dvh',
+    position: 'relative',
+    isolation: 'isolate',
+    backgroundColor: glassTokens.canvas,
+    backgroundImage: glassTokens.canvasImage,
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    ':before': {
+      content: '""',
+      position: 'fixed',
+      inset: 0,
+      zIndex: 0,
+      pointerEvents: 'none',
+      opacity: 'var(--cursor-opacity, 0)',
+      backgroundImage: `radial-gradient(340px circle at var(--cursor-x, 50%) var(--cursor-y, 50%), ${glassTokens.pointerGlow}, transparent 74%)`,
+      transitionProperty: 'opacity',
+      transitionDuration: tokens.durationNormal,
+      '@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce), (forced-colors: active)': {
+        display: 'none'
+      }
     }
   },
   skipLink: {
@@ -59,176 +57,261 @@ const useStyles = makeStyles({
     top: tokens.spacingVerticalS,
     left: tokens.spacingHorizontalS,
     zIndex: 100,
-    transform: 'translateY(-160%)',
-    backgroundColor: tokens.colorNeutralBackground1,
+    transform: 'translateY(-180%)',
+    backgroundColor: glassTokens.solidSurface,
     color: tokens.colorNeutralForeground1,
-    ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
-    ...shorthands.borderRadius(tokens.borderRadiusMedium),
-    ':focus': {
-      transform: 'translateY(0)'
-    }
+    ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL),
+    borderRadius: tokens.borderRadiusMedium,
+    ':focus': { transform: 'translateY(0)' }
   },
-  sidebar: {
+  header: {
     position: 'sticky',
     top: 0,
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    backgroundColor: tokens.colorNeutralBackground1,
-    ...shorthands.borderRight('1px', 'solid', tokens.colorNeutralStroke2),
     zIndex: 20,
-    '@media (max-width: 900px)': {
-      position: 'fixed',
-      left: 0,
-      width: 'min(86vw, 320px)',
-      transform: 'translateX(-105%)',
-      visibility: 'hidden',
-      transitionProperty: 'transform',
-      transitionDuration: '180ms'
-    }
-  },
-  sidebarOpen: {
-    '@media (max-width: 900px)': {
-      transform: 'translateX(0)',
-      visibility: 'visible'
-    }
-  },
-  brand: {
-    minHeight: '76px',
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: 'auto minmax(0, 1fr) auto',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalM,
-    ...shorthands.padding(0, tokens.spacingHorizontalL),
-    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke2)
+    columnGap: tokens.spacingHorizontalL,
+    rowGap: tokens.spacingVerticalS,
+    minHeight: '80px',
+    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalXL),
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    '@media (max-width: 1200px)': {
+      gridTemplateColumns: 'minmax(0, 1fr) auto'
+    },
+    '@media (max-width: 600px)': {
+      ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalM),
+      columnGap: tokens.spacingHorizontalS
+    }
   },
-  brandMark: {
-    width: '40px',
-    height: '40px',
-    display: 'grid',
-    placeItems: 'center',
-    ...shorthands.borderRadius(tokens.borderRadiusLarge),
-    backgroundColor: tokens.colorBrandBackground,
-    color: tokens.colorNeutralForegroundOnBrand,
-    fontWeight: tokens.fontWeightBold,
-    fontSize: tokens.fontSizeBase500
-  },
-  nav: {
-    display: 'grid',
-    gap: tokens.spacingVerticalXS,
-    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalM),
-    overflowY: 'auto'
-  },
-  navLink: {
-    display: 'grid',
-    gridTemplateColumns: '36px 1fr',
+  brandGroup: {
+    display: 'flex',
     alignItems: 'center',
     gap: tokens.spacingHorizontalS,
-    color: tokens.colorNeutralForeground2,
+    minWidth: 0
+  },
+  brand: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalM,
+    color: tokens.colorNeutralForeground1,
     textDecorationLine: 'none',
-    ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalS),
-    ...shorthands.borderRadius(tokens.borderRadiusMedium),
+    whiteSpace: 'nowrap',
+    minHeight: '44px'
+  },
+  brandMark: {
+    width: '42px',
+    height: '42px',
+    flexShrink: 0,
+    borderRadius: tokens.borderRadiusMedium,
+    boxShadow: glassTokens.shadow
+  },
+  brandName: {
+    display: 'grid',
+    gap: tokens.spacingVerticalXXS,
+    fontSize: tokens.fontSizeBase400,
+    lineHeight: tokens.lineHeightBase400,
+    fontWeight: tokens.fontWeightSemibold,
+    '@media (max-width: 360px)': { display: 'none' }
+  },
+  brandCaption: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: tokens.fontSizeBase100,
+    lineHeight: tokens.lineHeightBase100,
+    fontWeight: tokens.fontWeightRegular,
+    '@media (max-width: 600px)': { display: 'none' }
+  },
+  nav: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXXS,
+    justifySelf: 'center',
+    minWidth: 0,
+    maxWidth: '100%',
+    ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalXS),
+    backgroundColor: glassTokens.surface,
+    borderRadius: tokens.borderRadiusCircular,
+    '@media (max-width: 1200px)': {
+      gridColumn: '1 / -1',
+      gridRow: 2,
+      justifySelf: 'center'
+    }
+  },
+  navMobile: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    overflowY: 'auto',
+    ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL)
+  },
+  navLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: tokens.spacingHorizontalXS,
+    color: tokens.colorNeutralForeground2,
+    minHeight: '38px',
+    textDecorationLine: 'none',
+    whiteSpace: 'nowrap',
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightRegular,
+    ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalM),
+    ...shorthands.border('1px', 'solid', 'transparent'),
+    borderRadius: tokens.borderRadiusCircular,
+    transitionProperty: 'background-color, color, box-shadow',
+    transitionDuration: tokens.durationNormal,
     ':hover': {
-      backgroundColor: tokens.colorNeutralBackground1Hover,
-      color: tokens.colorNeutralForeground1
+      color: 'var(--navigation-accent)',
+      backgroundColor: 'var(--navigation-tint)'
     }
   },
   navLinkActive: {
-    backgroundColor: tokens.colorBrandBackground2,
-    color: tokens.colorBrandForeground1,
-    fontWeight: tokens.fontWeightSemibold
-  },
-  navIcon: {
-    width: '32px',
-    height: '32px',
-    display: 'grid',
-    placeItems: 'center',
-    ...shorthands.borderRadius(tokens.borderRadiusMedium)
-  },
-  sidebarFooter: {
-    marginTop: 'auto',
-    display: 'grid',
-    gap: tokens.spacingVerticalS,
-    ...shorthands.padding(tokens.spacingVerticalL),
-    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2)
-  },
-  main: {
-    minWidth: 0
-  },
-  header: {
-    minHeight: '76px',
-    position: 'sticky',
-    top: 0,
-    zIndex: 10,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalM,
-    ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalXXL),
-    backgroundColor: tokens.colorNeutralBackground1,
-    ...shorthands.borderBottom('1px', 'solid', tokens.colorNeutralStroke2),
-    '@media (max-width: 700px)': {
-      ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
-      alignItems: 'stretch',
-      flexDirection: 'column'
+    color: tokens.colorNeutralForegroundOnBrand,
+    backgroundColor: 'var(--navigation-solid)',
+    boxShadow: tokens.shadow2,
+    ':hover': {
+      color: tokens.colorNeutralForegroundOnBrand,
+      backgroundColor: 'var(--navigation-solid)'
+    },
+    '& [data-navigation-icon]': { color: 'inherit' },
+    '@media (forced-colors: active)': {
+      ...shorthands.borderColor('Highlight')
     }
   },
-  headerStart: {
-    display: 'flex',
-    alignItems: 'center',
+  navLinkMobile: {
+    justifyContent: 'flex-start',
+    minHeight: '48px',
+    fontSize: tokens.fontSizeBase300,
     gap: tokens.spacingHorizontalM
   },
-  mobileMenu: {
-    display: 'none',
-    '@media (max-width: 900px)': {
-      display: 'inline-flex'
-    }
+  navLinkCompact: {
+    minWidth: '40px',
+    paddingInline: tokens.spacingHorizontalS
+  },
+  navIcon: {
+    display: 'inline-flex',
+    flexShrink: 0,
+    color: 'var(--navigation-accent)'
+  },
+  navDot: {
+    width: '5px',
+    height: '5px',
+    borderRadius: tokens.borderRadiusCircular,
+    backgroundColor: 'currentColor'
   },
   headerControls: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: tokens.spacingHorizontalS,
-    '@media (max-width: 700px)': {
-      justifyContent: 'stretch',
-      alignItems: 'stretch',
-      flexDirection: 'column',
-      width: '100%',
-      '& > span': {
-        width: '100%'
-      },
-      '& select': {
-        width: '100%',
-        minWidth: 0
-      },
-      '& > svg': {
-        display: 'none'
-      }
+    gap: tokens.spacingHorizontalXS,
+    justifyContent: 'flex-end'
+  },
+  iconButton: {
+    minWidth: '36px',
+    minHeight: '36px',
+    borderRadius: tokens.borderRadiusCircular,
+    backgroundColor: glassTokens.surface,
+    '@media (max-width: 900px)': {
+      minWidth: '44px',
+      minHeight: '44px'
     }
   },
+  themeButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    minHeight: '36px',
+    borderRadius: tokens.borderRadiusCircular,
+    backgroundColor: glassTokens.surface,
+    ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalM),
+    '@media (max-width: 900px)': { minHeight: '44px', minWidth: '44px' }
+  },
+  themeText: {
+    '@media (max-width: 600px)': { display: 'none' }
+  },
+  identityButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS,
+    minHeight: '36px',
+    borderRadius: tokens.borderRadiusCircular,
+    backgroundColor: glassTokens.surface,
+    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalXS),
+    '@media (max-width: 900px)': { minHeight: '44px', minWidth: '44px' }
+  },
+  identityText: {
+    color: tokens.colorNeutralForeground2,
+    '@media (max-width: 600px)': { display: 'none' }
+  },
+  identityPanel: {
+    width: '320px',
+    maxWidth: 'calc(100vw - 32px)',
+    display: 'grid',
+    gap: tokens.spacingVerticalL,
+    backgroundColor: glassTokens.solidSurface,
+    borderRadius: tokens.borderRadiusLarge,
+    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalL)
+  },
+  identityPanelHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: tokens.spacingHorizontalS
+  },
+  identityPanelTitle: {
+    fontSize: tokens.fontSizeBase400,
+    fontWeight: tokens.fontWeightSemibold,
+    margin: 0
+  },
+  select: { minWidth: 0, width: '100%' },
+  selectInput: { minWidth: 0, textOverflow: 'ellipsis' },
+  muted: { color: tokens.colorNeutralForeground3 },
+  error: {
+    gridColumn: '1 / -1',
+    color: tokens.colorPaletteRedForeground1,
+    fontSize: tokens.fontSizeBase200
+  },
   content: {
-    width: 'min(1480px, 100%)',
-    marginInline: 'auto',
-    ...shorthands.padding(tokens.spacingVerticalXXL, tokens.spacingHorizontalXXL),
-    '@media (max-width: 700px)': {
+    position: 'relative',
+    zIndex: 1,
+    minWidth: 0,
+    flexGrow: 1,
+    ...shorthands.padding(tokens.spacingVerticalXXXL, tokens.spacingHorizontalXXXL),
+    '@media (max-width: 600px)': {
       ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalM)
     }
   },
-  backdrop: {
-    display: 'none',
-    '@media (max-width: 900px)': {
-      position: 'fixed',
-      inset: 0,
-      zIndex: 15,
-      display: 'block',
-      backgroundColor: 'rgba(0, 0, 0, 0.45)'
-    }
+  footer: {
+    position: 'relative',
+    zIndex: 1,
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: tokens.spacingHorizontalS,
+    ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalXL),
+    color: tokens.colorNeutralForeground3
   },
-  closeButton: {
-    display: 'none',
-    marginLeft: 'auto',
-    '@media (max-width: 900px)': {
-      display: 'inline-flex'
-    }
+  demoLabel: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS
+  },
+  drawer: {
+    maxWidth: 'calc(100vw - 24px)',
+    backgroundColor: glassTokens.strongSurface,
+    backdropFilter: glassTokens.blur,
+    borderTopRightRadius: tokens.borderRadiusXLarge,
+    borderBottomRightRadius: tokens.borderRadiusXLarge,
+    padding: 0
+  },
+  drawerHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: tokens.spacingHorizontalM,
+    ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalL)
   }
 });
 
@@ -236,167 +319,271 @@ interface AppShellProps {
   members: Member[];
   currentUserId: string;
   identityError: string | null;
+  identityLoading?: boolean;
   themeMode: ThemeMode;
   onThemeChange: (mode: ThemeMode) => void;
   onIdentityChange: (userId: string) => void;
+}
+
+export interface WorkspaceContext {
+  currentMember: Member | undefined;
+  members: Member[];
+  identityLoading: boolean;
+  identityError: string | null;
+}
+
+type NavigationStyle = CSSProperties & {
+  '--navigation-accent': string;
+  '--navigation-tint': string;
+  '--navigation-solid': string;
+};
+
+function readCollapsedPreference() {
+  try {
+    return window.localStorage.getItem('cvs-garage-sidebar') === 'collapsed';
+  } catch (error) {
+    console.warn('The navigation preference could not be restored.', error);
+    return false;
+  }
 }
 
 export function AppShell({
   members,
   currentUserId,
   identityError,
+  identityLoading = false,
   themeMode,
   onThemeChange,
   onIdentityChange
 }: AppShellProps) {
   const styles = useStyles();
   const location = useLocation();
+  const mobile = useMediaQuery('(max-width: 900px)');
   const [menuOpen, setMenuOpen] = useState(false);
-  const activeItem =
-    navigation.find((item) =>
-      item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
-    ) || navigation[0];
+  const [identityOpen, setIdentityOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(readCollapsedPreference);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const previousPath = useRef(location.pathname);
+  const compact = collapsed && !mobile;
+  const activeItem = workspaceNavigation.find((item) =>
+    item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
+  ) || workspaceNavigation[0];
+  const currentMember = members.find((member) => member.id === currentUserId);
+  const toggleLabel = mobile ? 'Open navigation' : compact ? 'Expand navigation' : 'Collapse navigation';
+  const ToggleIcon = mobile ? Menu : compact ? ChevronDown : ChevronUp;
+  const ThemeIcon = themeMode === 'system' ? Monitor : themeMode === 'light' ? Sun : Moon;
+  const nextTheme: Record<ThemeMode, ThemeMode> = { system: 'light', light: 'dark', dark: 'system' };
+  const nextMode = nextTheme[themeMode];
+  const context: WorkspaceContext = { currentMember, members, identityLoading, identityError };
 
   useEffect(() => {
     setMenuOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
+    setIdentityOpen(false);
     document.title = `${activeItem.label} — CVS Garage`;
-    document.getElementById('main-content')?.focus();
-  }, [activeItem.label]);
+    if (previousPath.current !== location.pathname) {
+      document.getElementById('main-content')?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      previousPath.current = location.pathname;
+    }
+  }, [location.pathname, activeItem.label]);
 
   useEffect(() => {
-    if (!menuOpen) {
-      return undefined;
+    if (!mobile) setMenuOpen(false);
+  }, [mobile]);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const reducedTransparency = window.matchMedia('(prefers-reduced-transparency: reduce)');
+    const forcedColors = window.matchMedia('(forced-colors: active)');
+    let request = 0;
+
+    function onMove(event: PointerEvent) {
+      if (!frame || !finePointer.matches || reducedMotion.matches || reducedTransparency.matches || forcedColors.matches) return;
+      cancelAnimationFrame(request);
+      const x = event.clientX;
+      const y = event.clientY;
+      const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-pointer-glow]') : null;
+      request = requestAnimationFrame(() => {
+        frame.style.setProperty('--cursor-x', `${x}px`);
+        frame.style.setProperty('--cursor-y', `${y}px`);
+        frame.style.setProperty('--cursor-opacity', '1');
+        if (target) {
+          const rect = target.getBoundingClientRect();
+          target.style.setProperty('--glow-x', `${x - rect.left}px`);
+          target.style.setProperty('--glow-y', `${y - rect.top}px`);
+        }
+      });
     }
 
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMenuOpen(false);
-      }
+    function onLeave() {
+      cancelAnimationFrame(request);
+      frame?.style.setProperty('--cursor-opacity', '0');
+    }
+
+    frame.addEventListener('pointermove', onMove);
+    frame.addEventListener('pointerleave', onLeave);
+    return () => {
+      cancelAnimationFrame(request);
+      frame.removeEventListener('pointermove', onMove);
+      frame.removeEventListener('pointerleave', onLeave);
     };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [menuOpen]);
+  }, []);
 
-  function handleIdentity(event: ChangeEvent<HTMLSelectElement>) {
-    onIdentityChange(event.target.value);
+  function toggleNavigation() {
+    if (mobile) {
+      setIdentityOpen(false);
+      setMenuOpen(true);
+      return;
+    }
+    const nextCollapsed = !collapsed;
+    setCollapsed(nextCollapsed);
+    try {
+      window.localStorage.setItem('cvs-garage-sidebar', nextCollapsed ? 'collapsed' : 'expanded');
+    } catch (error) {
+      console.warn('The navigation preference could not be saved. It will apply for this session.', error);
+    }
   }
 
-  function handleTheme(event: ChangeEvent<HTMLSelectElement>) {
-    onThemeChange(event.target.value as ThemeMode);
+  function closeNavigation() {
+    setMenuOpen(false);
+    toggleRef.current?.focus();
   }
+
+  const navigation = (
+    <nav
+      id="workspace-navigation"
+      className={mergeClasses(styles.nav, mobile && styles.navMobile)}
+      aria-label="Primary navigation"
+      data-orientation={mobile ? 'vertical' : 'horizontal'}
+    >
+      {workspaceNavigation.map((item) => {
+        const Icon = item.icon;
+        const colors = areaTokens(item.area);
+        const variables: NavigationStyle = {
+          '--navigation-accent': colors.foreground,
+          '--navigation-tint': colors.background,
+          '--navigation-solid': colors.solid
+        };
+        return (
+          <Tooltip key={item.to} content={compact ? item.label : item.description} relationship="description" positioning={mobile ? 'after' : 'below'}>
+            <NavLink
+              to={item.to}
+              end={item.to === '/'}
+              aria-label={item.label}
+              data-area={item.area}
+              style={variables}
+              onClick={() => setMenuOpen(false)}
+              className={({ isActive }) => mergeClasses(styles.navLink, compact && styles.navLinkCompact, mobile && styles.navLinkMobile, isActive && styles.navLinkActive)}
+            >
+              <span className={styles.navIcon} data-navigation-icon aria-hidden="true">
+                {compact || mobile ? <Icon size={19} strokeWidth={1.6} /> : <span className={styles.navDot} />}
+              </span>
+              {!compact ? <span>{mobile ? item.label : item.tabLabel || item.label}</span> : null}
+            </NavLink>
+          </Tooltip>
+        );
+      })}
+    </nav>
+  );
+
+  const navigationToggle = (
+    <Tooltip content={toggleLabel} relationship="description">
+      <Button
+        ref={toggleRef}
+        className={styles.iconButton}
+        appearance="subtle"
+        icon={<ToggleIcon size={18} />}
+        aria-label={toggleLabel}
+        aria-expanded={mobile ? menuOpen : !compact}
+        aria-controls="workspace-navigation"
+        onClick={toggleNavigation}
+      />
+    </Tooltip>
+  );
 
   return (
-    <div className={styles.root}>
+    <div className={styles.root} data-navigation={compact ? 'collapsed' : 'expanded'}>
       <a className={styles.skipLink} href="#main-content">Skip to main content</a>
-      {menuOpen ? (
-        <button
-          type="button"
-          className={styles.backdrop}
-          aria-label="Close navigation"
-          onClick={() => setMenuOpen(false)}
-        />
-      ) : null}
-      <aside className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.brand}>
-          <div className={styles.brandMark} aria-hidden="true">CV</div>
-          <div>
-            <Text block weight="semibold" size={500}>CVS Garage</Text>
-            <Text block size={200}>College innovation portal</Text>
-          </div>
-          <Button
-            className={styles.closeButton}
-            appearance="subtle"
-            icon={<X size={20} />}
-            aria-label="Close navigation"
-            onClick={() => setMenuOpen(false)}
-          />
-        </div>
-        <nav className={styles.nav} aria-label="Primary navigation">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) =>
-                  `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`
-                }
-              >
-                <span
-                  className={styles.navIcon}
-                  style={{ color: areaDetails[item.area].color }}
-                  aria-hidden="true"
-                >
-                  <Icon size={20} />
-                </span>
-                <span>
-                  <Text block weight="semibold">{item.label}</Text>
-                  <Text block size={200}>{item.description}</Text>
-                </span>
-              </NavLink>
-            );
-          })}
-        </nav>
-        <div className={styles.sidebarFooter}>
-          <Text size={200}>Local development MVP</Text>
-          <Text size={200}>Data is synthetic and stored locally.</Text>
-        </div>
-      </aside>
-
-      <div className={styles.main}>
+      <div ref={frameRef} className={styles.frame} data-workspace-frame>
         <header className={styles.header}>
-          <div className={styles.headerStart}>
-            <Button
-              className={styles.mobileMenu}
-              appearance="subtle"
-              icon={<Menu size={20} />}
-              aria-label="Open navigation"
-              onClick={() => setMenuOpen(true)}
-            />
-            <div>
-              <Text block size={200}>Workspace</Text>
-              <Text block weight="semibold" size={500}>{activeItem.label}</Text>
-            </div>
+          <div className={styles.brandGroup}>
+            {mobile ? navigationToggle : null}
+            <Link to="/" className={styles.brand} aria-label="CVS Garage overview">
+              <img className={styles.brandMark} src="/garage-mark.svg" alt="" width="42" height="42" />
+              <span className={styles.brandName}>CVS Garage<span className={styles.brandCaption}>Campus innovation</span></span>
+            </Link>
           </div>
+          {!mobile ? navigation : null}
           <div className={styles.headerControls}>
-            {identityError ? (
-              <Text role="alert" size={200}>{identityError}</Text>
-            ) : null}
-            <Tooltip content="Select a synthetic identity for local role testing" relationship="label">
-              <Select
-                aria-label="Development identity"
-                value={currentUserId}
-                onChange={handleIdentity}
+            {!mobile ? navigationToggle : null}
+            <Tooltip content={`Theme: ${themeMode}. Switch to ${nextMode}.`} relationship="description">
+              <Button
+                className={styles.themeButton}
+                appearance="subtle"
+                icon={<ThemeIcon size={18} aria-hidden="true" />}
+                aria-label={`Theme: ${themeMode}. Switch to ${nextMode}.`}
+                onClick={() => onThemeChange(nextMode)}
               >
-                {members.length === 0 ? (
-                  <option value={currentUserId}>Loading identities…</option>
-                ) : (
-                  members.map((member) => (
-                    <option key={member.id} value={member.id}>
-                      {member.name} · {member.role}
-                    </option>
-                  ))
-                )}
-              </Select>
+                <span className={styles.themeText}>{themeMode === 'system' ? 'System' : themeMode === 'light' ? 'Light' : 'Dark'}</span>
+              </Button>
             </Tooltip>
-            <Tooltip content="Choose the portal color mode" relationship="label">
-              <Select aria-label="Theme mode" value={themeMode} onChange={handleTheme}>
-                <option value="system">System theme</option>
-                <option value="light">Light theme</option>
-                <option value="dark">Dark theme</option>
-              </Select>
-            </Tooltip>
-            <MoonStar size={20} aria-hidden="true" />
+            <Popover open={identityOpen} onOpenChange={(_, data) => setIdentityOpen(data.open)} positioning="below-end" trapFocus>
+              <PopoverTrigger disableButtonEnhancement>
+                <Button className={styles.identityButton} appearance="subtle" aria-label={currentMember ? `Demo identity: ${currentMember.name}` : 'Demo identity'}>
+                  <Avatar name={currentMember?.name} size={28} color="brand" aria-hidden="true" />
+                  <Text size={200} className={styles.identityText}>Demo</Text>
+                </Button>
+              </PopoverTrigger>
+              <PopoverSurface className={styles.identityPanel} role="dialog" aria-label="Demo identity">
+                <div className={styles.identityPanelHeader}>
+                  <h2 className={styles.identityPanelTitle}>Demo identity</h2>
+                  <Button appearance="subtle" icon={<X size={18} />} aria-label="Close demo identity" onClick={() => setIdentityOpen(false)} />
+                </div>
+                <Field label="Development identity">
+                  <Select
+                    className={styles.select}
+                    select={{ className: styles.selectInput }}
+                    value={currentUserId}
+                    onChange={(event) => {
+                      onIdentityChange(event.target.value);
+                      setIdentityOpen(false);
+                    }}
+                    disabled={identityLoading || members.length === 0}
+                  >
+                    {members.length === 0 ? (
+                      <option value={currentUserId}>{identityLoading ? 'Loading identities...' : 'No identities available'}</option>
+                    ) : members.map((member) => (
+                      <option key={member.id} value={member.id}>{member.name} · {member.role}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Text size={200} className={styles.muted}>Synthetic identities for local role testing. This is not a production account.</Text>
+              </PopoverSurface>
+            </Popover>
           </div>
+          {identityError ? <Text role="alert" className={styles.error}>{identityError}</Text> : null}
         </header>
         <main className={styles.content} id="main-content" tabIndex={-1}>
-          <Outlet />
+          <Outlet context={context} />
         </main>
+        <footer className={styles.footer}>
+          <Text size={200}>Your campus, connected.</Text>
+          <span className={styles.demoLabel}><FlaskConical size={13} aria-hidden="true" /><Text size={200}>Demo workspace · Synthetic data</Text></span>
+        </footer>
       </div>
+      {mobile ? (
+        <OverlayDrawer open={menuOpen} onOpenChange={(_, data) => { if (!data.open) closeNavigation(); }} position="start" aria-label="Workspace navigation" className={styles.drawer}>
+          <div className={styles.drawerHeader}>
+            <Text size={500}>Your workspace</Text>
+            <Button className={styles.iconButton} appearance="subtle" icon={<X size={20} />} aria-label="Close navigation" onClick={closeNavigation} />
+          </div>
+          {navigation}
+        </OverlayDrawer>
+      ) : null}
     </div>
   );
 }

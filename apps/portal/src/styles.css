@@ -1,5 +1,5 @@
 :root {
-  font-family: "Google Sans", "Segoe UI", sans-serif;
+  font-family: "Google Sans", "Avenir Next", "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -15,17 +15,27 @@ html {
 
 body,
 #root,
-.cvs-theme-root {
+#root > .cvs-theme-root {
   min-height: 100vh;
   margin: 0;
 }
 
 body {
-  background: #f5f5f5;
+  background: #ffffff;
 }
 
 html[data-theme="dark"] body {
-  background: #292929;
+  background: #000000;
+}
+
+#root > .cvs-theme-root {
+  background: var(--cvs-backdrop);
+}
+
+main,
+section,
+article {
+  min-width: 0;
 }
 
 button,
@@ -45,7 +55,67 @@ textarea {
 
 :focus-visible {
   outline: 2px solid var(--area-brand, #0f6cbd);
-  outline-offset: 2px;
+  outline-offset: 3px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (prefers-reduced-transparency: no-preference) {
+  [data-pointer-glow]:hover {
+    background-image: radial-gradient(
+      300px circle at var(--glow-x, 50%) var(--glow-y, 50%),
+      var(--cvs-card-glow),
+      transparent 75%
+    );
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .cvs-theme-root {
+    --cvs-surface: var(--cvs-solid-surface) !important;
+    --cvs-strong-surface: var(--cvs-solid-surface) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  .cvs-theme-root {
+    --cvs-surface: var(--cvs-solid-surface) !important;
+    --cvs-strong-surface: var(--cvs-solid-surface) !important;
+    --cvs-glass-blur: none !important;
+    --cvs-canvas-image: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :root,
+  .cvs-theme-root {
+    --cvs-canvas: Canvas !important;
+    --cvs-backdrop: Canvas !important;
+    --cvs-frame-shadow: none !important;
+    --cvs-surface: Canvas !important;
+    --cvs-solid-surface: Canvas !important;
+    --cvs-strong-surface: Canvas !important;
+    --cvs-surface-hover: Canvas !important;
+    --cvs-muted-surface: Canvas !important;
+    --cvs-glass-border: CanvasText !important;
+    --cvs-glass-shadow: none !important;
+    --cvs-glass-shadow-hover: none !important;
+    --cvs-canvas-image: none !important;
+    --cvs-glass-blur: none !important;
+    --cvs-accent-surface: Canvas !important;
+    --cvs-accent-foreground: CanvasText !important;
+    --cvs-accent-muted: CanvasText !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

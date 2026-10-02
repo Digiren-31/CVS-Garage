@@ -142,7 +142,11 @@ describe('IdeaCentrePage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Turn an idea into shared momentum' })
     ).toBeInTheDocument();
-    expect(screen.getByText('Solar-powered campus irrigation')).toBeInTheDocument();
+    const card = within(
+      screen.getByRole('article', { name: 'Solar-powered campus irrigation. Open idea details' })
+    );
+    expect(card.getByRole('heading', { name: /Solar-powered campus irrigation/, level: 2 })).toBeInTheDocument();
+    expect(card.getByRole('link', { name: 'Open Solar-powered campus irrigation' })).toBeInTheDocument();
     expect(screen.getByText('Mentored by Dr. Priya Nair')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '1 comment' })).toBeInTheDocument();
     expect(
@@ -189,7 +193,7 @@ describe('IdeaCentrePage', () => {
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Open Solar-powered campus irrigation' })
+      screen.getByRole('link', { name: 'Open Solar-powered campus irrigation' })
     );
     expect(
       await screen.findByRole('heading', {
@@ -198,7 +202,7 @@ describe('IdeaCentrePage', () => {
       })
     ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Back to ideas' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to ideas' })).toBeInTheDocument();
     expect(
       screen.getByText('A sensor network for efficient campus irrigation.')
     ).toBeInTheDocument();
@@ -285,12 +289,74 @@ describe('IdeaCentrePage', () => {
       screen.getByRole('textbox', { name: 'Add a comment' })
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back to ideas' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Back to ideas' }));
     expect(
       await screen.findByRole('heading', {
         name: 'Turn an idea into shared momentum',
         level: 1
       })
     ).toBeInTheDocument();
+  });
+
+  it('keeps idea cards keyboard-accessible without activating nested actions', async () => {
+    renderIdeaCentre();
+    const card = await screen.findByRole('article', {
+      name: 'Solar-powered campus irrigation. Open idea details'
+    });
+    fireEvent.keyDown(card, { key: 'Enter' });
+    expect(
+      await screen.findByRole('heading', { name: ideas[0].title, level: 1 })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('link', { name: 'Back to ideas' }));
+    const restoredCard = await screen.findByRole('article', {
+      name: 'Solar-powered campus irrigation. Open idea details'
+    });
+
+    fireEvent.click(within(restoredCard).getByRole('button', { name: `Save ${ideas[0].title}` }));
+    await waitFor(() => expect(apiMock.toggleSave).toHaveBeenCalledWith(ideas[0].id));
+    expect(screen.getByRole('article', { name: `${ideas[0].title}. Open idea details` })).toBeInTheDocument();
+
+    fireEvent.keyDown(restoredCard, { key: ' ' });
+    expect(
+      await screen.findByRole('heading', { name: ideas[0].title, level: 1 })
+    ).toBeInTheDocument();
+  });
+
+  it('opens a direct idea independently of discovery filters and restores them on return', async () => {
+    renderIdeaCentre('/idea-centre/ideas/IDEA-2026-101?q=solar&status=Open&track=Sustainability');
+    await screen.findByRole('heading', { name: ideas[0].title, level: 1 });
+    expect(apiMock.list).toHaveBeenLastCalledWith('');
+    expect(screen.queryByRole('search')).not.toBeInTheDocument();
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: 'Back to ideas' }));
+    await screen.findByRole('search');
+    expect(apiMock.list).toHaveBeenLastCalledWith('solar');
+    expect(screen.getByRole('searchbox', { name: 'Search ideas' })).toHaveValue('solar');
+    expect(screen.getByRole('combobox', { name: 'Status' })).toHaveValue('Open');
+    expect(screen.getByRole('combobox', { name: 'Track' })).toHaveValue('Sustainability');
+  });
+
+  it('offers a list link for missing ideas and failed direct loads', async () => {
+    const { unmount } = renderIdeaCentre('/idea-centre/ideas/missing');
+    expect(await screen.findByRole('heading', { name: 'Idea not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to ideas' })).toBeInTheDocument();
+    unmount();
+    apiMock.list.mockRejectedValueOnce(new Error('Idea service unavailable'));
+    renderIdeaCentre('/idea-centre/ideas/IDEA-2026-101');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Idea service unavailable');
+    expect(screen.getByRole('link', { name: 'Back to ideas' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('heading', { name: ideas[0].title, level: 1 })).toBeInTheDocument();
+  });
+
+  it('retains a selected track when returning to an empty search result', async () => {
+    apiMock.list.mockImplementation(async (query: string) => query === 'unrelated' ? [] : ideas);
+    renderIdeaCentre('/idea-centre/ideas/IDEA-2026-101?q=unrelated&track=Sustainability');
+    await screen.findByRole('heading', { name: ideas[0].title, level: 1 });
+    fireEvent.click(screen.getByRole('link', { name: 'Back to ideas' }));
+    await screen.findByText('No ideas match these filters');
+    expect(screen.getByRole('searchbox', { name: 'Search ideas' })).toHaveValue('unrelated');
+    expect(screen.getByRole('combobox', { name: 'Track' })).toHaveValue('Sustainability');
   });
 });

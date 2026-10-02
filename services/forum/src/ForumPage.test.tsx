@@ -1,11 +1,14 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
-  waitFor
+  waitFor,
+  within
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import type {
   Event,
   ForumPost,
@@ -173,6 +176,29 @@ vi.mock('../../../packages/api-client/src', () => ({
   api: apiMock
 }));
 
+function LocationControls() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <>
+    <output aria-label="Current URL">{location.pathname}{location.search}</output>
+    <button onClick={() => navigate(-1)}>Browser back</button>
+    <button onClick={() => navigate(1)}>Browser forward</button>
+  </>;
+}
+
+function renderForum(entry = '/forum') {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <LocationControls />
+      <Routes>
+        <Route path="/forum" element={<ForumPage />} />
+        <Route path="/forum/posts/:postId" element={<ForumPage />} />
+        <Route path="/forum/:section" element={<ForumPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
 describe('ForumPage', () => {
   afterEach(() => {
     cleanup();
@@ -220,10 +246,10 @@ describe('ForumPage', () => {
   });
 
   it('loads the feed and sends search, sort, status, and saved filters through the shared client', async () => {
-    render(<ForumPage />);
+    renderForum();
 
     expect(
-      await screen.findByRole('button', { name: post.title })
+      await screen.findByRole('link', { name: post.title })
     ).not.toBeNull();
 
     fireEvent.change(
@@ -258,15 +284,18 @@ describe('ForumPage', () => {
   });
 
   it('opens a post, renders replies, and offers accepted-solution control to the author', async () => {
-    render(<ForumPage />);
+    renderForum();
 
     fireEvent.click(
-      await screen.findByRole('button', { name: post.title })
+      await screen.findByRole('link', { name: post.title })
     );
 
     expect(
       await screen.findByRole('heading', { name: post.title })
     ).not.toBeNull();
+    expect(screen.getByLabelText('Current URL')).toHaveTextContent(`/forum/posts/${post.id}`);
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Forum sections' })).not.toBeInTheDocument();
     expect(screen.getByText(reply.content)).not.toBeNull();
 
     fireEvent.click(
@@ -281,8 +310,8 @@ describe('ForumPage', () => {
   });
 
   it('creates a discussion with Project and Event links from an accessible dialog', async () => {
-    render(<ForumPage />);
-    await screen.findByRole('button', { name: post.title });
+    renderForum();
+    await screen.findByRole('link', { name: post.title });
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Start a discussion' })
@@ -318,5 +347,59 @@ describe('ForumPage', () => {
         })
       )
     );
+  });
+
+  it('preserves tag-chip filtering and exposes community card headings', async () => {
+    renderForum();
+    const card = await screen.findByRole('article', { name: post.title });
+    fireEvent.click(within(card).getByRole('button', { name: '#React' }));
+    expect(await screen.findByText('Showing tag: #react')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Communities' }));
+    expect(screen.getByRole('heading', { name: 'Communities and guilds', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Accessible Web Guild', level: 3 })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'View community feed' }));
+    expect(await screen.findByText('Showing community: Accessible Web Guild')).toBeInTheDocument();
+    expect(await screen.findByRole('article', { name: post.title })).toBeInTheDocument();
+  });
+
+  it('opens a discussion from a direct URL and returns to the filtered feed', async () => {
+    renderForum('/forum/posts/post-1?search=accessibility&sort=trending');
+    expect(await screen.findByRole('heading', { name: post.title, level: 1 })).toBeInTheDocument();
+    expect(apiMock.forum.post).toHaveBeenCalledWith('post-1');
+    expect(screen.getByRole('link', { name: project.name })).toHaveAttribute('href', '/projects/PRJ-101');
+    expect(screen.getByRole('link', { name: event.title })).toHaveAttribute('href', '/events/EVT-201');
+    fireEvent.click(screen.getByRole('link', { name: 'Back to discussion feed' }));
+    await screen.findByRole('article', { name: post.title });
+    expect(screen.getByLabelText('Current URL')).toHaveTextContent('/forum?search=accessibility&sort=trending');
+    await waitFor(() => expect(apiMock.forum.posts).toHaveBeenLastCalledWith(expect.objectContaining({ search: 'accessibility', sort: 'trending' })));
+    fireEvent.click(screen.getByRole('button', { name: 'Browser back' }));
+    expect(await screen.findByRole('heading', { name: post.title, level: 1 })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Browser forward' }));
+    expect(await screen.findByRole('article', { name: post.title })).toBeInTheDocument();
+  });
+
+  it('keeps a return link and retry when a direct discussion cannot be loaded', async () => {
+    apiMock.forum.post.mockRejectedValueOnce(new Error('Discussion not found'));
+    renderForum('/forum/posts/missing');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Discussion not found');
+    expect(screen.getByRole('link', { name: 'Back to discussion feed' })).toHaveAttribute('href', '/forum');
+    expect(screen.queryByRole('article', { name: post.title })).not.toBeInTheDocument();
+  });
+
+  it('ignores a detail response that finishes after returning to the feed', async () => {
+    let complete: ((value: ForumPost) => void) | undefined;
+    apiMock.forum.post.mockReturnValueOnce(new Promise<ForumPost>((resolve) => { complete = resolve; }));
+    renderForum('/forum/posts/post-1');
+    await screen.findByText('Loading discussion and replies');
+    fireEvent.click(screen.getByRole('link', { name: 'Back to discussion feed' }));
+    await screen.findByRole('article', { name: post.title });
+    await act(async () => {
+      if (!complete) throw new Error('The pending discussion request was not created');
+      complete(post);
+    });
+    expect(screen.getByLabelText('Current URL')).toHaveTextContent('/forum');
+    expect(screen.queryByRole('heading', { name: post.title, level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByRole('article', { name: post.title })).toBeInTheDocument();
   });
 });

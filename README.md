@@ -7,7 +7,8 @@ development data.
 
 ## Technology baseline
 
-- **Portal:** React, TypeScript, Vite, React Router, and Fluent UI React v9.
+- **Portal:** React, TypeScript, Vite, React Router, Fluent UI React v9, and
+  route-scoped Framer Motion landing animations.
 - **Backend:** Express modular monolith with versioned REST endpoints.
 - **Shared frontend:** typed contracts, a browser API client, and area-aware
   Fluent UI themes under `packages/`.
@@ -31,9 +32,16 @@ npm run dev
 Open `http://localhost:3000`. The Vite development server proxies `/api` to the
 Express backend at `http://localhost:4000`.
 
-The header contains a clearly labelled synthetic identity selector for testing
+The header's **Demo identity** avatar opens a clearly labelled synthetic identity selector for testing
 Student, Mentor, Moderator, and Admin behavior. Every protected backend action
 still re-checks the selected identity and its permissions.
+
+The shared workspace uses a full-width pure-white or pitch-black dashboard
+canvas, lightweight typography, and each service's assigned functional accent.
+Collapse the horizontal
+desktop navigation from pill labels into icon tabs with the header toggle;
+mobile uses a modal drawer. Light, dark, system, motion, and transparency
+preferences are respected without removing functionality.
 
 ### Production-style local run
 

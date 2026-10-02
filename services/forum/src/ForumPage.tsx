@@ -25,9 +25,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent
 } from 'react';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../../packages/api-client/src';
 import type {
   Event,
@@ -40,13 +42,11 @@ import type {
 import {
   ContentCard,
   ServicePage,
-  StatePanel
+  StatePanel,
+  glassTokens
 } from '../../../packages/ui/src';
 
 type ForumView = 'feed' | 'detail' | 'communities' | 'mentors' | 'moderation';
-type FeedMode = 'all' | 'following' | 'bookmarks';
-type FeedSort = 'newest' | 'trending' | 'unanswered';
-type PostStatusFilter = '' | ForumPost['status'];
 type VoteTarget = 'post' | 'reply';
 
 interface ModerationReport {
@@ -105,63 +105,76 @@ const postTypes: Array<{ value: ForumPost['postType']; label: string }> = [
 const useStyles = makeStyles({
   navigation: {
     display: 'flex',
+    minWidth: 0,
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalS,
     alignItems: 'center'
   },
   feedback: {
     display: 'flex',
+    minWidth: 0,
+    flexWrap: 'wrap',
+    overflowWrap: 'anywhere',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: tokens.spacingHorizontalM,
     ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
-    backgroundColor: tokens.colorNeutralBackground2
+    backgroundColor: tokens.colorNeutralBackground2,
+    '& > *': {
+      minWidth: 0
+    }
   },
   errorFeedback: {
     color: tokens.colorPaletteRedForeground1
   },
   filterPanel: {
     display: 'grid',
+    minWidth: 0,
+    overflowWrap: 'anywhere',
     gap: tokens.spacingVerticalM
+  },
+  control: {
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%'
   },
   searchRow: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(220px, 1fr) auto',
+    minWidth: 0,
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    alignItems: 'end',
     gap: tokens.spacingHorizontalS,
+    '& > *': {
+      minWidth: 0
+    },
     '@media (max-width: 600px)': {
       gridTemplateColumns: '1fr'
     }
   },
   filters: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(2, minmax(150px, 220px)) minmax(0, 1fr)',
+    minWidth: 0,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
     gap: tokens.spacingHorizontalM,
     alignItems: 'end',
-    '@media (max-width: 900px)': {
-      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))'
-    },
-    '@media (max-width: 600px)': {
-      gridTemplateColumns: '1fr'
+    '& > *': {
+      minWidth: 0
     }
   },
   feedModes: {
     display: 'flex',
+    minWidth: 0,
+    gridColumn: '1 / -1',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    '@media (max-width: 900px)': {
-      gridColumn: '1 / -1',
-      justifyContent: 'flex-start'
-    },
-    '@media (max-width: 600px)': {
-      gridColumn: 'auto'
-    }
+    justifyContent: 'flex-start'
   },
   contentLayout: {
     display: 'grid',
+    minWidth: 0,
     gridTemplateColumns: 'minmax(0, 1fr) minmax(230px, 290px)',
     gap: tokens.spacingHorizontalXL,
     alignItems: 'start',
@@ -172,10 +185,15 @@ const useStyles = makeStyles({
   stream: {
     display: 'grid',
     gap: tokens.spacingVerticalM,
-    minWidth: 0
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+    '& > *': {
+      minWidth: 0
+    }
   },
   sidebar: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalM,
     position: 'sticky',
     top: tokens.spacingVerticalL,
@@ -189,34 +207,62 @@ const useStyles = makeStyles({
   },
   sidebarList: {
     display: 'grid',
-    gap: tokens.spacingVerticalS
+    minWidth: 0,
+    gap: tokens.spacingVerticalS,
+    '& > *': {
+      minWidth: 0,
+      maxWidth: '100%'
+    }
   },
   sidebarItem: {
     display: 'grid',
+    minWidth: 0,
+    maxWidth: '100%',
+    height: 'auto',
     gap: tokens.spacingVerticalXS,
     justifyItems: 'start',
-    textAlign: 'start'
+    textAlign: 'start',
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere'
+  },
+  surface: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    WebkitBackdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    ...shorthands.borderRadius(tokens.borderRadiusLarge)
   },
   postCard: {
     ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalL),
-    display: 'grid',
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
     gap: tokens.spacingVerticalM
   },
   postTop: {
     display: 'flex',
+    minWidth: 0,
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalS,
     alignItems: 'center'
   },
   author: {
     display: 'flex',
+    minWidth: 0,
+    maxWidth: '100%',
+    flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS,
     alignItems: 'center'
   },
   postTitle: {
+    minWidth: 0,
     marginBlock: 0,
-    fontSize: tokens.fontSizeBase500,
-    lineHeight: tokens.lineHeightBase500
+    fontSize: tokens.fontSizeBase400,
+    lineHeight: tokens.lineHeightBase400,
+    overflowWrap: 'anywhere'
   },
   titleButton: {
     minWidth: 0,
@@ -225,6 +271,10 @@ const useStyles = makeStyles({
     justifyContent: 'flex-start',
     textAlign: 'start',
     whiteSpace: 'normal',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+    fontWeight: tokens.fontWeightSemibold,
+    overflowWrap: 'anywhere',
     ...shorthands.padding(0)
   },
   body: {
@@ -240,54 +290,111 @@ const useStyles = makeStyles({
   },
   tags: {
     display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS
   },
   linkedItems: {
     display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS
   },
+  badge: {
+    minWidth: 0,
+    maxWidth: '100%',
+    height: 'auto',
+    minHeight: tokens.lineHeightBase400,
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+    lineHeight: tokens.lineHeightBase200,
+    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalS)
+  },
+  tagButton: {
+    minWidth: 0,
+    maxWidth: '100%',
+    height: 'auto',
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+    textAlign: 'start',
+    fontSize: tokens.fontSizeBase200,
+    lineHeight: tokens.lineHeightBase200,
+    ...shorthands.borderRadius(tokens.borderRadiusCircular),
+    ...shorthands.padding(tokens.spacingVerticalXS, tokens.spacingHorizontalS)
+  },
   actions: {
     display: 'flex',
+    minWidth: 0,
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalM
+    gap: tokens.spacingHorizontalM,
+    '& > *': {
+      minWidth: 0,
+      maxWidth: '100%'
+    }
   },
   actionGroup: {
     display: 'flex',
+    minWidth: 0,
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS,
-    alignItems: 'center'
+    alignItems: 'center',
+    '& > *': {
+      minWidth: 0,
+      maxWidth: '100%'
+    }
+  },
+  voteControls: {
+    display: 'inline-flex',
+    minWidth: 0,
+    maxWidth: '100%',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS
   },
   voteScore: {
     minWidth: '3ch',
+    flexShrink: 0,
     textAlign: 'center',
     fontWeight: tokens.fontWeightSemibold
   },
   detail: {
     display: 'grid',
-    gap: tokens.spacingVerticalL
+    minWidth: 0,
+    gap: tokens.spacingVerticalL,
+    '& > *': {
+      minWidth: 0
+    }
+  },
+  backAction: {
+    justifySelf: 'start',
+    minWidth: 0,
+    maxWidth: '100%'
   },
   detailHeader: {
     display: 'flex',
+    minWidth: 0,
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalM
   },
   detailTitle: {
+    minWidth: 0,
     marginBlock: 0,
-    fontSize: tokens.fontSizeHero700,
-    lineHeight: tokens.lineHeightHero700,
+    fontSize: tokens.fontSizeBase600,
+    lineHeight: tokens.lineHeightBase600,
+    overflowWrap: 'anywhere',
     '@media (max-width: 600px)': {
-      fontSize: tokens.fontSizeBase600,
-      lineHeight: tokens.lineHeightBase600
+      fontSize: tokens.fontSizeBase500,
+      lineHeight: tokens.lineHeightBase500
     }
   },
   contextPanel: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalXS,
     ...shorthands.padding(tokens.spacingVerticalM),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
@@ -299,15 +406,21 @@ const useStyles = makeStyles({
   },
   replies: {
     display: 'grid',
-    gap: tokens.spacingVerticalM
+    minWidth: 0,
+    gap: tokens.spacingVerticalM,
+    '& > *': {
+      minWidth: 0
+    }
   },
   reply: {
     display: 'grid',
+    minWidth: 0,
+    overflowWrap: 'anywhere',
     gap: tokens.spacingVerticalS,
     ...shorthands.padding(tokens.spacingVerticalM),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
-    backgroundColor: tokens.colorNeutralBackground1
+    backgroundColor: glassTokens.solidSurface
   },
   replyDepthOne: {
     marginInlineStart: tokens.spacingHorizontalXL,
@@ -323,10 +436,15 @@ const useStyles = makeStyles({
   },
   composer: {
     display: 'grid',
-    gap: tokens.spacingVerticalM
+    minWidth: 0,
+    gap: tokens.spacingVerticalM,
+    '& > *': {
+      minWidth: 0
+    }
   },
   sectionHeader: {
     display: 'flex',
+    minWidth: 0,
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
@@ -334,38 +452,89 @@ const useStyles = makeStyles({
   },
   cards: {
     display: 'grid',
+    minWidth: 0,
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
     gap: tokens.spacingHorizontalL
   },
   discoveryCard: {
     ...shorthands.padding(tokens.spacingVerticalL),
-    display: 'grid',
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    height: '100%',
     gap: tokens.spacingVerticalM
   },
   discoveryHeader: {
     display: 'flex',
+    minWidth: 0,
     gap: tokens.spacingHorizontalM,
-    alignItems: 'center'
+    alignItems: 'flex-start'
+  },
+  identityCopy: {
+    minWidth: 0
+  },
+  sectionTitle: {
+    minWidth: 0,
+    marginBlock: 0,
+    overflowWrap: 'anywhere'
+  },
+  discoveryAction: {
+    minWidth: 0,
+    maxWidth: '100%',
+    alignSelf: 'flex-start',
+    marginTop: 'auto',
+    textAlign: 'start',
+    whiteSpace: 'normal'
   },
   mentorSearch: {
+    minWidth: 0,
+    width: '100%',
     maxWidth: '420px'
+  },
+  dialogSurface: {
+    minWidth: 0,
+    width: `min(680px, calc(100vw - ${tokens.spacingHorizontalL} * 2))`,
+    maxWidth: '100%',
+    maxHeight: `calc(100dvh - ${tokens.spacingVerticalL} * 2)`,
+    overflowY: 'auto'
+  },
+  dialogBody: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+    '& > *': {
+      minWidth: 0
+    }
+  },
+  dialogActions: {
+    display: 'flex',
+    minWidth: 0,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: tokens.spacingHorizontalS
   },
   dialogContent: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalM,
-    maxHeight: 'min(68vh, 680px)',
-    overflowY: 'auto',
+    '& > *': {
+      minWidth: 0
+    },
     ...shorthands.padding(0, tokens.spacingHorizontalXS)
   },
   formGrid: {
     display: 'grid',
+    minWidth: 0,
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: tokens.spacingHorizontalM,
+    '& > *': {
+      minWidth: 0
+    },
     '@media (max-width: 600px)': {
       gridTemplateColumns: '1fr'
     }
   },
   fullSpan: {
+    minWidth: 0,
     gridColumn: '1 / -1',
     '@media (max-width: 600px)': {
       gridColumn: 'auto'
@@ -375,10 +544,13 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground3
   },
   touchButton: {
+    minWidth: 0,
+    maxWidth: '100%',
     minHeight: '40px'
   },
   moderationItem: {
     ...shorthands.padding(tokens.spacingVerticalL),
+    minWidth: 0,
     display: 'grid',
     gap: tokens.spacingVerticalM
   }
@@ -458,7 +630,7 @@ function AuthorSummary({
       <Text size={compact ? 200 : 300} weight="semibold">
         {author?.name || 'Forum member'}
       </Text>
-      {author?.isMentor ? <Badge size="small">Mentor</Badge> : null}
+      {author?.isMentor ? <Badge className={styles.badge} appearance="tint" size="small">Mentor</Badge> : null}
     </span>
   );
 }
@@ -480,8 +652,9 @@ function VoteControls({
 }) {
   const styles = useStyles();
   return (
-    <div className={styles.actionGroup} aria-label={`${targetType} voting controls`}>
+    <div className={styles.voteControls} aria-label={`${targetType} voting controls`}>
       <Button
+        size="small"
         appearance={userVote === 1 ? 'primary' : 'subtle'}
         aria-label={`Upvote ${targetType}`}
         aria-pressed={userVote === 1}
@@ -494,6 +667,7 @@ function VoteControls({
         {score}
       </Text>
       <Button
+        size="small"
         appearance={userVote === -1 ? 'primary' : 'subtle'}
         aria-label={`Downvote ${targetType}`}
         aria-pressed={userVote === -1}
@@ -510,7 +684,7 @@ function PostCard({
   post,
   currentUser,
   busyAction,
-  onOpen,
+  detailHref,
   onVote,
   onBookmark,
   onTag,
@@ -519,7 +693,7 @@ function PostCard({
   post: ForumPost;
   currentUser: Member | null;
   busyAction: string | null;
-  onOpen: (postId: string) => void;
+  detailHref: string;
   onVote: (targetType: VoteTarget, targetId: string, value: -1 | 1) => void;
   onBookmark: (postId: string) => void;
   onTag: (slug: string) => void;
@@ -530,11 +704,11 @@ function PostCard({
 
   return (
     <article aria-labelledby={`forum-post-title-${post.id}`}>
-      <Card className={styles.postCard}>
+      <Card className={mergeClasses(styles.surface, styles.postCard)}>
         <div className={styles.postTop}>
-          <Badge appearance="tint">{formatLabel(post.postType)}</Badge>
-          <Badge color={statusColor(post.status)}>{formatLabel(post.status)}</Badge>
-          {post.isPinned ? <Badge color="brand">Pinned</Badge> : null}
+          <Badge className={styles.badge} appearance="tint">{formatLabel(post.postType)}</Badge>
+          <Badge className={styles.badge} appearance="tint" color={statusColor(post.status)}>{formatLabel(post.status)}</Badge>
+          {post.isPinned ? <Badge className={styles.badge} appearance="tint" color="brand">Pinned</Badge> : null}
           <AuthorSummary post={post} />
           <Text size={200} className={styles.hint}>
             {formatDate(post.createdAt)}
@@ -545,13 +719,12 @@ function PostCard({
         </div>
 
         <h2 className={styles.postTitle} id={`forum-post-title-${post.id}`}>
-          <Button
-            appearance="transparent"
+          <Link
+            to={detailHref}
             className={styles.titleButton}
-            onClick={() => onOpen(post.id)}
           >
             {post.title}
-          </Button>
+          </Link>
         </h2>
 
         <Text className={mergeClasses(styles.body, styles.clampBody)}>
@@ -561,13 +734,13 @@ function PostCard({
         {post.linkedProject || post.linkedEvent || post.ideaExport ? (
           <div className={styles.linkedItems} aria-label="Linked portal records">
             {post.linkedProject ? (
-              <Badge appearance="outline">Project: {post.linkedProject.name}</Badge>
+              <Link to={`/projects/${encodeURIComponent(post.linkedProject.id)}`}><Badge className={styles.badge} appearance="outline">Project: {post.linkedProject.name}</Badge></Link>
             ) : null}
             {post.linkedEvent ? (
-              <Badge appearance="outline">Event: {post.linkedEvent.title}</Badge>
+              <Link to={`/events/${encodeURIComponent(post.linkedEvent.id)}`}><Badge className={styles.badge} appearance="outline">Event: {post.linkedEvent.title}</Badge></Link>
             ) : null}
             {post.ideaExport ? (
-              <Badge color="success">Idea Centre: {post.ideaExport.ideaId}</Badge>
+              <Link to={`/idea-centre/ideas/${encodeURIComponent(post.ideaExport.ideaId)}`}><Badge className={styles.badge} appearance="tint" color="success">Idea Centre: {post.ideaExport.ideaId}</Badge></Link>
             ) : null}
           </div>
         ) : null}
@@ -578,7 +751,8 @@ function PostCard({
               <Button
                 key={tag.id}
                 size="small"
-                appearance="subtle"
+                appearance="secondary"
+                className={styles.tagButton}
                 onClick={() => onTag(tag.slug)}
               >
                 #{tag.name}
@@ -598,9 +772,9 @@ function PostCard({
               disabled={busy}
               onVote={onVote}
             />
-            <Button appearance="subtle" onClick={() => onOpen(post.id)}>
+            <Link to={detailHref}>
               {post.replyCount} {post.replyCount === 1 ? 'reply' : 'replies'}
-            </Button>
+            </Link>
             <Button
               appearance={post.isBookmarked ? 'primary' : 'subtle'}
               aria-pressed={Boolean(post.isBookmarked)}
@@ -675,9 +849,9 @@ function ReplyTree({
                 <Text weight="semibold">
                   {reply.author?.name || 'Forum member'}
                 </Text>
-                {reply.author?.isMentor ? <Badge size="small">Mentor</Badge> : null}
+                {reply.author?.isMentor ? <Badge className={styles.badge} appearance="tint" size="small">Mentor</Badge> : null}
                 {reply.isAcceptedSolution ? (
-                  <Badge color="success">Accepted solution</Badge>
+                  <Badge className={styles.badge} appearance="tint" color="success">Accepted solution</Badge>
                 ) : null}
                 <Text size={200} className={styles.hint}>
                   {formatDate(reply.createdAt)}
@@ -738,17 +912,29 @@ function ReplyTree({
 
 export function ForumPage() {
   const styles = useStyles();
-  const [view, setView] = useState<ForumView>('feed');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { postId } = useParams<{ postId?: string }>();
+  const [searchParams] = useSearchParams();
+  const view: ForumView = postId ? 'detail'
+    : location.pathname.endsWith('/communities') ? 'communities'
+      : location.pathname.endsWith('/mentors') ? 'mentors'
+        : location.pathname.endsWith('/moderation') ? 'moderation' : 'feed';
+  const feedPath = `/forum${location.search}`;
+  const routePostId = useRef(postId);
+  routePostId.current = postId;
+  const detailRequest = useRef(0);
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState<string | null>(null);
-  const [searchDraft, setSearchDraft] = useState('');
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<FeedSort>('newest');
-  const [status, setStatus] = useState<PostStatusFilter>('');
-  const [feedMode, setFeedMode] = useState<FeedMode>('all');
-  const [communityFilter, setCommunityFilter] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
+  const search = searchParams.get('search') || '';
+  const sort = searchParams.get('sort') || 'newest';
+  const status = searchParams.get('status') || '';
+  const feedMode = searchParams.get('mode') || 'all';
+  const communityFilter = searchParams.get('community') || '';
+  const tagFilter = searchParams.get('tag') || '';
+  const [searchDraft, setSearchDraft] = useState(search);
+  useEffect(() => setSearchDraft(search), [search]);
 
   const [communities, setCommunities] = useState<
     Array<{ id: string; name: string; slug: string; description: string }>
@@ -762,7 +948,7 @@ export function ForumPage() {
   const [supportError, setSupportError] = useState<string | null>(null);
   const [mentorSearch, setMentorSearch] = useState('');
 
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const selectedPostId = postId || null;
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null);
   const [replies, setReplies] = useState<ForumReply[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -885,10 +1071,12 @@ export function ForumPage() {
   }, [loadSupportData]);
 
   useEffect(() => {
-    void loadFeed();
-  }, [loadFeed]);
+    if (view === 'feed') void loadFeed();
+  }, [loadFeed, view]);
 
   const loadDetail = useCallback(async (postId: string) => {
+    if (routePostId.current !== postId) return;
+    const request = ++detailRequest.current;
     setDetailLoading(true);
     setDetailError(null);
     try {
@@ -896,16 +1084,33 @@ export function ForumPage() {
         api.forum.post(postId),
         api.forum.replies(postId)
       ]);
-      setSelectedPost(post);
-      setReplies(postReplies);
+      if (request === detailRequest.current && routePostId.current === postId) {
+        setSelectedPost(post);
+        setReplies(postReplies);
+      }
     } catch (error) {
-      setDetailError(
-        getErrorMessage(error, 'This discussion could not be loaded.')
-      );
+      if (request === detailRequest.current) {
+        setDetailError(getErrorMessage(error, 'This discussion could not be loaded.'));
+      }
     } finally {
-      setDetailLoading(false);
+      if (request === detailRequest.current) setDetailLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    setSelectedPost(null);
+    setReplies([]);
+    setDetailError(null);
+    setReplyText('');
+    setReplyingTo(null);
+    setFeedback(null);
+    if (postId) void loadDetail(postId);
+    return () => { detailRequest.current += 1; };
+  }, [postId, loadDetail]);
+
+  useEffect(() => {
+    if (postId && selectedPost?.id === postId) document.title = `${selectedPost.title} — CVS Garage`;
+  }, [selectedPost, postId]);
 
   const loadReports = useCallback(async () => {
     setReportsLoading(true);
@@ -923,61 +1128,56 @@ export function ForumPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (view === 'moderation') void loadReports();
+  }, [view, loadReports]);
+
   function openPost(postId: string) {
-    setView('detail');
-    setSelectedPostId(postId);
-    setReplyText('');
-    setReplyingTo(null);
-    setSelectedPost(null);
-    void loadDetail(postId);
+    navigate(`/forum/posts/${encodeURIComponent(postId)}${location.search}`);
   }
 
   function showFeed() {
-    setView('feed');
-    setDetailError(null);
+    navigate(feedPath);
+  }
+
+  function updateFilters(values: Record<string, string>) {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(values).forEach(([key, value]) => {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    });
+    const query = next.toString();
+    navigate(`/forum${query ? `?${query}` : ''}`, { replace: view === 'feed' });
   }
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSearch(searchDraft.trim());
-    setView('feed');
+    updateFilters({ search: searchDraft.trim() });
   }
 
   function clearFilters() {
     setSearchDraft('');
-    setSearch('');
-    setSort('newest');
-    setStatus('');
-    setFeedMode('all');
-    setCommunityFilter('');
-    setTagFilter('');
+    navigate('/forum', { replace: view === 'feed' });
   }
 
   function filterByTag(slug: string) {
-    setTagFilter(slug);
-    setCommunityFilter('');
-    setFeedMode('all');
-    setView('feed');
+    updateFilters({ tag: slug, community: '', mode: '' });
   }
 
   function filterByCommunity(slug: string) {
-    setCommunityFilter(slug);
-    setTagFilter('');
-    setFeedMode('all');
-    setView('feed');
+    updateFilters({ community: slug, tag: '', mode: '' });
   }
 
   function openCommunities() {
-    setView('communities');
+    navigate(`/forum/communities${location.search}`);
   }
 
   function openMentors() {
-    setView('mentors');
+    navigate(`/forum/mentors${location.search}`);
   }
 
   function openModeration() {
-    setView('moderation');
-    void loadReports();
+    navigate(`/forum/moderation${location.search}`);
   }
 
   async function handleVote(
@@ -1371,6 +1571,7 @@ export function ForumPage() {
             >
               <Field label="Search discussions">
                 <Input
+                  className={styles.control}
                   type="search"
                   value={searchDraft}
                   onChange={(_, data) => setSearchDraft(data.value)}
@@ -1388,10 +1589,11 @@ export function ForumPage() {
             <div className={styles.filters}>
               <Field label="Sort">
                 <Select
+                  className={styles.control}
                   aria-label="Sort discussions"
                   value={sort}
                   onChange={(event) =>
-                    setSort(event.target.value as FeedSort)
+                    updateFilters({ sort: event.target.value })
                   }
                 >
                   <option value="newest">Newest</option>
@@ -1401,10 +1603,11 @@ export function ForumPage() {
               </Field>
               <Field label="Status">
                 <Select
+                  className={styles.control}
                   aria-label="Filter discussions by status"
                   value={status}
                   onChange={(event) =>
-                    setStatus(event.target.value as PostStatusFilter)
+                    updateFilters({ status: event.target.value })
                   }
                 >
                   <option value="">All statuses</option>
@@ -1421,7 +1624,7 @@ export function ForumPage() {
                     key={mode}
                     appearance={feedMode === mode ? 'primary' : 'subtle'}
                     aria-pressed={feedMode === mode}
-                    onClick={() => setFeedMode(mode)}
+                    onClick={() => updateFilters({ mode })}
                   >
                     {mode === 'all'
                       ? 'All'
@@ -1480,7 +1683,7 @@ export function ForumPage() {
                   post={post}
                   currentUser={currentUser}
                   busyAction={busyAction}
-                  onOpen={openPost}
+                  detailHref={`/forum/posts/${encodeURIComponent(post.id)}${location.search}`}
                   onVote={(targetType, targetId, value) =>
                     void handleVote(targetType, targetId, value)
                   }
@@ -1531,7 +1734,8 @@ export function ForumPage() {
                     <Button
                       key={tag.id}
                       size="small"
-                      appearance="subtle"
+                      appearance="secondary"
+                      className={styles.tagButton}
                       onClick={() => filterByTag(tag.slug)}
                     >
                       #{tag.name} ({tag.postCount})
@@ -1549,7 +1753,7 @@ export function ForumPage() {
   }
 
   function renderDetail() {
-    if (detailLoading) {
+    if (detailLoading || (postId && selectedPost?.id !== postId && !detailError)) {
       return (
         <StatePanel
           state="loading"
@@ -1575,15 +1779,12 @@ export function ForumPage() {
     const post = selectedPost;
     return (
       <div className={styles.detail}>
-        <Button appearance="subtle" onClick={showFeed}>
-          Back to discussion feed
-        </Button>
-        <Card className={styles.postCard}>
+        <Card className={mergeClasses(styles.surface, styles.postCard)}>
           <div className={styles.detailHeader}>
             <div className={styles.stream}>
               <div className={styles.postTop}>
-                <Badge appearance="tint">{formatLabel(post.postType)}</Badge>
-                <Badge color={statusColor(post.status)}>
+                <Badge className={styles.badge} appearance="tint">{formatLabel(post.postType)}</Badge>
+                <Badge className={styles.badge} appearance="tint" color={statusColor(post.status)}>
                   {formatLabel(post.status)}
                 </Badge>
                 <AuthorSummary post={post} />
@@ -1591,7 +1792,6 @@ export function ForumPage() {
                   {formatDate(post.createdAt)}
                 </Text>
               </div>
-              <h2 className={styles.detailTitle}>{post.title}</h2>
             </div>
             <Button
               appearance="subtle"
@@ -1606,7 +1806,7 @@ export function ForumPage() {
               <Text size={200} weight="semibold">
                 Linked project
               </Text>
-              <Text weight="semibold">{post.linkedProject.name}</Text>
+              <Link to={`/projects/${encodeURIComponent(post.linkedProject.id)}`}>{post.linkedProject.name}</Link>
               <Text>{post.linkedProject.tagline}</Text>
             </div>
           ) : null}
@@ -1615,7 +1815,7 @@ export function ForumPage() {
               <Text size={200} weight="semibold">
                 Linked event
               </Text>
-              <Text weight="semibold">{post.linkedEvent.title}</Text>
+              <Link to={`/events/${encodeURIComponent(post.linkedEvent.id)}`}>{post.linkedEvent.title}</Link>
               <Text>
                 {formatDate(post.linkedEvent.startDate)} –{' '}
                 {formatDate(post.linkedEvent.endDate)}
@@ -1631,7 +1831,8 @@ export function ForumPage() {
                 <Button
                   key={tag.id}
                   size="small"
-                  appearance="subtle"
+                  appearance="secondary"
+                  className={styles.tagButton}
                   onClick={() => filterByTag(tag.slug)}
                 >
                   #{tag.name}
@@ -1663,9 +1864,9 @@ export function ForumPage() {
               </Button>
             </div>
             {post.ideaExport ? (
-              <Badge color="success">
-                Exported to Idea Centre as {post.ideaExport.ideaId}
-              </Badge>
+              <Link to={`/idea-centre/ideas/${encodeURIComponent(post.ideaExport.ideaId)}`}>
+                <Badge className={styles.badge} appearance="tint" color="success">Exported to Idea Centre as {post.ideaExport.ideaId}</Badge>
+              </Link>
             ) : canExportPost(currentUser, post) ? (
               <Button appearance="secondary" onClick={() => beginExport(post)}>
                 Export to Idea Centre
@@ -1679,12 +1880,12 @@ export function ForumPage() {
         </Card>
 
         {post.acceptedReply ? (
-          <Card className={mergeClasses(styles.postCard, styles.accepted)}>
+          <Card className={mergeClasses(styles.surface, styles.postCard, styles.accepted)}>
             <div className={styles.sectionHeader}>
-              <Text size={500} weight="semibold">
+              <Text as="h2" size={500} weight="semibold" className={styles.sectionTitle}>
                 Accepted solution
               </Text>
-              <Badge color="success">Solved</Badge>
+              <Badge className={styles.badge} appearance="tint" color="success">Solved</Badge>
             </div>
             <div className={styles.postTop}>
               <Avatar
@@ -1706,11 +1907,11 @@ export function ForumPage() {
 
         <section className={styles.replies} aria-labelledby="forum-replies-title">
           <div className={styles.sectionHeader}>
-            <Text id="forum-replies-title" size={500} weight="semibold">
+            <Text as="h2" id="forum-replies-title" size={500} weight="semibold" className={styles.sectionTitle}>
               Replies ({post.replyCount})
             </Text>
           </div>
-          <Card className={styles.postCard}>
+          <Card className={mergeClasses(styles.surface, styles.postCard)}>
             <form className={styles.composer} onSubmit={submitReply}>
               <Field
                 label={
@@ -1721,6 +1922,7 @@ export function ForumPage() {
                 hint="Share context, reasoning, or a constructive solution."
               >
                 <Textarea
+                  className={styles.control}
                   aria-label={
                     replyingTo
                       ? `Reply to ${replyingTo.author?.name || 'Forum member'}`
@@ -1812,7 +2014,7 @@ export function ForumPage() {
     return (
       <section className={styles.stream} aria-labelledby="communities-title">
         <div>
-          <Text id="communities-title" size={600} weight="semibold">
+          <Text as="h2" id="communities-title" size={500} weight="semibold" className={styles.sectionTitle}>
             Communities and guilds
           </Text>
           <Text block className={styles.hint}>
@@ -1821,12 +2023,13 @@ export function ForumPage() {
         </div>
         <div className={styles.cards}>
           {communities.map((community) => (
-            <Card key={community.id} className={styles.discoveryCard}>
-              <Text size={500} weight="semibold">
+            <Card key={community.id} className={mergeClasses(styles.surface, styles.discoveryCard)}>
+              <Text as="h3" size={400} weight="semibold" className={styles.sectionTitle}>
                 {community.name}
               </Text>
               <Text>{community.description}</Text>
               <Button
+                className={styles.discoveryAction}
                 appearance="secondary"
                 onClick={() => filterByCommunity(community.slug)}
               >
@@ -1856,7 +2059,7 @@ export function ForumPage() {
     return (
       <section className={styles.stream} aria-labelledby="mentors-title">
         <div>
-          <Text id="mentors-title" size={600} weight="semibold">
+          <Text as="h2" id="mentors-title" size={500} weight="semibold" className={styles.sectionTitle}>
             Mentor discovery
           </Text>
           <Text block className={styles.hint}>
@@ -1865,6 +2068,7 @@ export function ForumPage() {
         </div>
         <Field label="Search mentors" className={styles.mentorSearch}>
           <Input
+            className={styles.control}
             type="search"
             value={mentorSearch}
             onChange={(_, data) => setMentorSearch(data.value)}
@@ -1880,7 +2084,7 @@ export function ForumPage() {
         ) : (
           <div className={styles.cards}>
             {filteredMentors.map((mentor) => (
-              <Card key={mentor.id} className={styles.discoveryCard}>
+              <Card key={mentor.id} className={mergeClasses(styles.surface, styles.discoveryCard)}>
                 <div className={styles.discoveryHeader}>
                   <Avatar
                     size={48}
@@ -1889,8 +2093,8 @@ export function ForumPage() {
                       mentor.avatarUrl ? { src: mentor.avatarUrl } : undefined
                     }
                   />
-                  <div>
-                    <Text block size={500} weight="semibold">
+                  <div className={styles.identityCopy}>
+                    <Text as="h3" block size={400} weight="semibold" className={styles.sectionTitle}>
                       {mentor.name}
                     </Text>
                     <Text block size={300} className={styles.hint}>
@@ -1899,14 +2103,15 @@ export function ForumPage() {
                   </div>
                 </div>
                 <Text>{mentor.bio}</Text>
+                <Link to={`/member-centre/members/${encodeURIComponent(mentor.id)}`}>View profile</Link>
                 <div className={styles.tags}>
                   {mentor.mentorExpertise.map((expertise) => (
-                    <Badge key={expertise} appearance="tint">
+                    <Badge key={expertise} className={styles.badge} appearance="tint">
                       {expertise}
                     </Badge>
                   ))}
                 </div>
-                <Button appearance="primary" onClick={() => askMentor(mentor)}>
+                <Button className={styles.discoveryAction} appearance="primary" onClick={() => askMentor(mentor)}>
                   Start a question for {mentor.name}
                 </Button>
               </Card>
@@ -1954,7 +2159,7 @@ export function ForumPage() {
     return (
       <section className={styles.stream} aria-labelledby="moderation-title">
         <div>
-          <Text id="moderation-title" size={600} weight="semibold">
+          <Text as="h2" id="moderation-title" size={500} weight="semibold" className={styles.sectionTitle}>
             Community moderation
           </Text>
           <Text block className={styles.hint}>
@@ -1962,12 +2167,12 @@ export function ForumPage() {
           </Text>
         </div>
         {reports.map((report) => (
-          <Card key={report.id} className={styles.moderationItem}>
+          <Card key={report.id} className={mergeClasses(styles.surface, styles.moderationItem)}>
             <div className={styles.actions}>
               <div className={styles.postTop}>
-                <Badge color="warning">{formatLabel(report.reason)}</Badge>
-                <Badge>{formatLabel(report.targetType)}</Badge>
-                <Badge appearance="outline">
+                <Badge className={styles.badge} appearance="tint" color="warning">{formatLabel(report.reason)}</Badge>
+                <Badge className={styles.badge} appearance="tint">{formatLabel(report.targetType)}</Badge>
+                <Badge className={styles.badge} appearance="outline">
                   {formatLabel(report.status)}
                 </Badge>
               </div>
@@ -2009,10 +2214,10 @@ export function ForumPage() {
   return (
     <ServicePage
       area="forum"
-      title="Explore, ask, and solve together"
-      description="A campus knowledge space for technical questions, project and event conversations, mentor guidance, and ideas worth developing."
+      title={postId ? (selectedPost?.id === postId ? selectedPost.title : 'Discussion details') : 'Explore, ask, and solve together'}
+      description={postId ? 'Forum discussion' : 'A campus knowledge space for technical questions, project and event conversations, mentor guidance, and ideas worth developing.'}
       actions={
-        <Button
+        postId ? <Link to={feedPath}>Back to discussion feed</Link> : <Button
           appearance="primary"
           className={styles.touchButton}
           onClick={() => startPost()}
@@ -2021,7 +2226,7 @@ export function ForumPage() {
         </Button>
       }
     >
-      <nav className={styles.navigation} aria-label="Forum sections">
+      {!postId ? <nav className={styles.navigation} aria-label="Forum sections">
         <Button
           appearance={view === 'feed' || view === 'detail' ? 'primary' : 'subtle'}
           aria-current={
@@ -2054,7 +2259,7 @@ export function ForumPage() {
             Moderation
           </Button>
         ) : null}
-      </nav>
+      </nav> : null}
 
       {supportError ? (
         <div className={styles.feedback} role="status">
@@ -2098,9 +2303,9 @@ export function ForumPage() {
           }
         }}
       >
-        <DialogSurface aria-describedby="create-post-description">
-          <form onSubmit={submitNewPost}>
-            <DialogBody>
+        <DialogSurface className={styles.dialogSurface} aria-describedby="create-post-description">
+          <form className={styles.composer} onSubmit={submitNewPost}>
+            <DialogBody className={styles.dialogBody}>
               <DialogTitle>Start a Forum discussion</DialogTitle>
               <DialogContent className={styles.dialogContent}>
                 <Text id="create-post-description">
@@ -2115,6 +2320,7 @@ export function ForumPage() {
                 <div className={styles.formGrid}>
                   <Field label="Discussion type" required>
                     <Select
+                      className={styles.control}
                       value={createForm.postType}
                       onChange={(event) =>
                         updateCreateField(
@@ -2138,6 +2344,7 @@ export function ForumPage() {
                   </Field>
                   <Field label="Community">
                     <Select
+                      className={styles.control}
                       value={createForm.communityId}
                       onChange={(event) =>
                         updateCreateField('communityId', event.target.value)
@@ -2153,6 +2360,7 @@ export function ForumPage() {
                   </Field>
                   <Field label="Title" required className={styles.fullSpan}>
                     <Input
+                      className={styles.control}
                       value={createForm.title}
                       minLength={8}
                       maxLength={180}
@@ -2171,6 +2379,7 @@ export function ForumPage() {
                         className={styles.fullSpan}
                       >
                         <Textarea
+                          className={styles.control}
                           rows={3}
                           required
                           value={createForm.problemStatement}
@@ -2185,6 +2394,7 @@ export function ForumPage() {
                         className={styles.fullSpan}
                       >
                         <Textarea
+                          className={styles.control}
                           rows={4}
                           required
                           value={createForm.proposedSolution}
@@ -2198,6 +2408,7 @@ export function ForumPage() {
                         className={styles.fullSpan}
                       >
                         <Input
+                          className={styles.control}
                           value={createForm.expectedImpact}
                           onChange={(_, data) =>
                             updateCreateField('expectedImpact', data.value)
@@ -2212,6 +2423,7 @@ export function ForumPage() {
                       className={styles.fullSpan}
                     >
                       <Textarea
+                        className={styles.control}
                         rows={6}
                         minLength={10}
                         required
@@ -2225,6 +2437,7 @@ export function ForumPage() {
                   )}
                   <Field label="Link to a Project">
                     <Select
+                      className={styles.control}
                       value={createForm.linkedProjectId}
                       onChange={(event) =>
                         updateCreateField(
@@ -2243,6 +2456,7 @@ export function ForumPage() {
                   </Field>
                   <Field label="Link to an Event">
                     <Select
+                      className={styles.control}
                       value={createForm.linkedEventId}
                       onChange={(event) =>
                         updateCreateField(
@@ -2265,6 +2479,7 @@ export function ForumPage() {
                     className={styles.fullSpan}
                   >
                     <Input
+                      className={styles.control}
                       value={createForm.tags}
                       onChange={(_, data) =>
                         updateCreateField('tags', data.value)
@@ -2274,7 +2489,7 @@ export function ForumPage() {
                   </Field>
                 </div>
               </DialogContent>
-              <DialogActions>
+              <DialogActions className={styles.dialogActions}>
                 <Button
                   type="button"
                   appearance="secondary"
@@ -2304,9 +2519,9 @@ export function ForumPage() {
           }
         }}
       >
-        <DialogSurface aria-describedby="export-idea-description">
-          <form onSubmit={submitExport}>
-            <DialogBody>
+        <DialogSurface className={styles.dialogSurface} aria-describedby="export-idea-description">
+          <form className={styles.composer} onSubmit={submitExport}>
+            <DialogBody className={styles.dialogBody}>
               <DialogTitle>Export to Idea Centre</DialogTitle>
               <DialogContent className={styles.dialogContent}>
                 <Text id="export-idea-description">
@@ -2323,6 +2538,7 @@ export function ForumPage() {
                 ) : null}
                 <Field label="Problem statement" required>
                   <Textarea
+                    className={styles.control}
                     rows={3}
                     required
                     value={exportProblem}
@@ -2331,6 +2547,7 @@ export function ForumPage() {
                 </Field>
                 <Field label="Proposed solution" required>
                   <Textarea
+                    className={styles.control}
                     rows={5}
                     required
                     value={exportSolution}
@@ -2338,7 +2555,7 @@ export function ForumPage() {
                   />
                 </Field>
               </DialogContent>
-              <DialogActions>
+              <DialogActions className={styles.dialogActions}>
                 <Button
                   type="button"
                   appearance="secondary"
@@ -2370,9 +2587,9 @@ export function ForumPage() {
           }
         }}
       >
-        <DialogSurface aria-describedby="report-content-description">
-          <form onSubmit={submitReport}>
-            <DialogBody>
+        <DialogSurface className={styles.dialogSurface} aria-describedby="report-content-description">
+          <form className={styles.composer} onSubmit={submitReport}>
+            <DialogBody className={styles.dialogBody}>
               <DialogTitle>Report Forum content</DialogTitle>
               <DialogContent className={styles.dialogContent}>
                 <Text id="report-content-description">
@@ -2386,6 +2603,7 @@ export function ForumPage() {
                 ) : null}
                 <Field label="Reason" required>
                   <Select
+                    className={styles.control}
                     value={reportReason}
                     onChange={(event) => setReportReason(event.target.value)}
                   >
@@ -2405,13 +2623,14 @@ export function ForumPage() {
                 </Field>
                 <Field label="Additional context">
                   <Textarea
+                    className={styles.control}
                     rows={4}
                     value={reportNotes}
                     onChange={(_, data) => setReportNotes(data.value)}
                   />
                 </Field>
               </DialogContent>
-              <DialogActions>
+              <DialogActions className={styles.dialogActions}>
                 <Button
                   type="button"
                   appearance="secondary"

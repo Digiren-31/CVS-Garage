@@ -16,18 +16,26 @@ import {
   Select,
   Text,
   Textarea,
-  Title3,
   makeStyles,
+  mergeClasses,
   shorthands,
   tokens
 } from '@fluentui/react-components';
 import {
-  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent
 } from 'react';
+import {
+  useHref,
+  useLinkClickHandler,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams
+} from 'react-router-dom';
 import { api } from '../../../packages/api-client/src';
 import type {
   CreateProjectInput,
@@ -42,7 +50,8 @@ import {
   Panel,
   ServicePage,
   StatePanel,
-  StatusBadge
+  StatusBadge,
+  glassTokens
 } from '../../../packages/ui/src';
 
 type ProjectStatusFilter = Project['status'] | 'all';
@@ -82,20 +91,22 @@ const MILESTONE_STATUSES: Array<{ value: MilestoneStatus; label: string }> = [
 const useStyles = makeStyles({
   toolbar: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(220px, 1fr) repeat(2, minmax(150px, 220px))',
+    minWidth: 0,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
     alignItems: 'end',
     gap: tokens.spacingHorizontalM,
-    '@media (max-width: 760px)': {
-      gridTemplateColumns: '1fr'
+    '& > *': {
+      minWidth: 0
     }
   },
   searchForm: {
-    display: 'flex',
-    alignItems: 'flex-end',
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    minWidth: 0,
+    alignItems: 'end',
     gap: tokens.spacingHorizontalS,
-    '@media (max-width: 760px)': {
-      alignItems: 'stretch',
-      flexDirection: 'column'
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr'
     }
   },
   field: {
@@ -104,10 +115,13 @@ const useStyles = makeStyles({
     minWidth: 0
   },
   grow: {
-    flexGrow: 1
+    flexGrow: 1,
+    minWidth: 0
   },
   control: {
-    width: '100%'
+    width: '100%',
+    minWidth: 0,
+    maxWidth: '100%'
   },
   sectionHeading: {
     display: 'flex',
@@ -115,42 +129,90 @@ const useStyles = makeStyles({
     justifyContent: 'space-between',
     gap: tokens.spacingHorizontalM,
     flexWrap: 'wrap',
-    marginBottom: tokens.spacingVerticalM
+    marginBottom: tokens.spacingVerticalM,
+    minWidth: 0,
+    '& > *': {
+      minWidth: 0
+    }
   },
   secondaryText: {
     color: tokens.colorNeutralForeground2
   },
   card: {
+    minWidth: 0,
     height: '100%',
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    WebkitBackdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
+    overflowWrap: 'anywhere',
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    ...shorthands.borderRadius(tokens.borderRadiusLarge),
     ...shorthands.padding(tokens.spacingVerticalL)
   },
   cardBody: {
-    display: 'grid',
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minWidth: 0,
     gap: tokens.spacingVerticalM,
-    height: '100%'
+    '& > *': {
+      minWidth: 0
+    }
   },
   cardHeading: {
+    display: 'grid',
+    minWidth: 0,
+    gap: tokens.spacingVerticalS
+  },
+  cardTitle: {
+    marginBlock: 0,
+    overflowWrap: 'anywhere'
+  },
+  cardMeta: {
     display: 'flex',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalM
+    minWidth: 0,
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    flexWrap: 'wrap'
   },
   tags: {
     display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS,
     listStyleType: 'none',
     margin: 0,
-    padding: 0
+    padding: 0,
+    '& > li': {
+      display: 'flex',
+      minWidth: 0,
+      maxWidth: '100%'
+    }
+  },
+  tag: {
+    minWidth: 0,
+    maxWidth: '100%',
+    height: 'auto',
+    minHeight: tokens.lineHeightBase400,
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+    lineHeight: tokens.lineHeightBase200,
+    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalS)
   },
   progress: {
     display: 'grid',
+    minWidth: 0,
+    marginTop: 'auto',
     gap: tokens.spacingVerticalXS
   },
   progressLabel: {
     display: 'flex',
     justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalM
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS
   },
   cardFooter: {
     display: 'flex',
@@ -158,8 +220,8 @@ const useStyles = makeStyles({
     justifyContent: 'space-between',
     gap: tokens.spacingHorizontalM,
     flexWrap: 'wrap',
-    marginTop: 'auto',
-    paddingTop: tokens.spacingVerticalS,
+    minWidth: 0,
+    paddingTop: tokens.spacingVerticalM,
     ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2)
   },
   feedback: {
@@ -170,29 +232,53 @@ const useStyles = makeStyles({
   },
   detail: {
     display: 'grid',
-    gap: tokens.spacingVerticalL
+    gap: tokens.spacingVerticalL,
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+    '& > *': {
+      minWidth: 0
+    }
   },
   detailHeader: {
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalM
+    gap: tokens.spacingHorizontalM,
+    flexWrap: 'wrap',
+    minWidth: 0,
+    '& > *': {
+      minWidth: 0
+    }
   },
   detailMeta: {
     display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalM
   },
+  detailSection: {
+    display: 'grid',
+    minWidth: 0,
+    gap: tokens.spacingVerticalS
+  },
   teamList: {
     display: 'flex',
+    minWidth: 0,
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS,
     listStyleType: 'none',
     margin: 0,
-    padding: 0
+    padding: 0,
+    '& > li': {
+      display: 'flex',
+      minWidth: 0,
+      maxWidth: '100%'
+    }
   },
   milestones: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalM,
     listStyleType: 'none',
     margin: 0,
@@ -200,35 +286,63 @@ const useStyles = makeStyles({
   },
   milestone: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    minWidth: 0,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
     gap: tokens.spacingHorizontalL,
     alignItems: 'center',
     ...shorthands.padding(tokens.spacingVerticalM),
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
-    ...shorthands.borderRadius(tokens.borderRadiusMedium),
-    '@media (max-width: 760px)': {
-      gridTemplateColumns: '1fr'
-    }
+    ...shorthands.borderRadius(tokens.borderRadiusMedium)
   },
   milestoneCopy: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalXS
   },
   milestoneActions: {
     display: 'flex',
+    minWidth: 0,
     alignItems: 'flex-end',
     gap: tokens.spacingHorizontalS,
+    flexWrap: 'wrap',
     '@media (max-width: 760px)': {
       alignItems: 'stretch',
       flexDirection: 'column'
     }
   },
   dialogForm: {
-    display: 'grid'
+    display: 'grid',
+    minWidth: 0
+  },
+  dialogSurface: {
+    minWidth: 0,
+    width: `min(640px, calc(100vw - ${tokens.spacingHorizontalL} * 2))`,
+    maxWidth: '100%',
+    maxHeight: `calc(100dvh - ${tokens.spacingVerticalL} * 2)`,
+    overflowY: 'auto'
+  },
+  dialogBody: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+    '& > *': {
+      minWidth: 0
+    }
+  },
+  dialogActions: {
+    display: 'flex',
+    minWidth: 0,
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS
   },
   formFields: {
     display: 'grid',
-    gap: tokens.spacingVerticalM
+    minWidth: 0,
+    gap: tokens.spacingVerticalM,
+    marginTop: tokens.spacingVerticalM,
+    '& > *': {
+      minWidth: 0
+    }
   },
   dialogError: {
     color: tokens.colorPaletteRedForeground1,
@@ -307,58 +421,98 @@ function toProjectInput(form: ProjectForm): CreateProjectInput {
   };
 }
 
+function ProjectNavigationLink({
+  to,
+  label,
+  children
+}: {
+  to: string;
+  label?: string;
+  children: string;
+}) {
+  const href = useHref(to);
+  const onClick = useLinkClickHandler<HTMLAnchorElement>(to);
+  return (
+    <Button as="a" href={href} onClick={onClick} appearance="secondary" aria-label={label}>
+      {children}
+    </Button>
+  );
+}
+
 export function ProjectsPage() {
+  const { projectId } = useParams<{ projectId: string }>();
+  return projectId
+    ? <ProjectDetailPage key={projectId} projectId={projectId} />
+    : <ProjectDirectoryPage />;
+}
+
+function ProjectDirectoryPage() {
   const styles = useStyles();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const submittedQuery = (searchParams.get('q') || '').trim();
+  const statusFilter = PROJECT_STATUSES.find(
+    (status) => status.value === searchParams.get('status')
+  )?.value || 'all';
+  const categoryFilter = searchParams.get('category') || 'all';
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
-  const [query, setQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ProjectStatusFilter>('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [query, setQuery] = useState(submittedQuery);
+  const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [requestedProjectId, setRequestedProjectId] = useState<string | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
-  const [milestoneDrafts, setMilestoneDrafts] = useState<Record<string, MilestoneStatus>>({});
-  const [updatingMilestone, setUpdatingMilestone] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<ProjectForm>(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState<ProjectFormErrors>({});
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const mounted = useRef(false);
 
-  const load = useCallback(async (searchQuery = '') => {
-    setLoading(true);
-    try {
-      const [nextProjects, member] = await Promise.all([
-        api.projects.list(searchQuery),
-        api.members.current()
-      ]);
-      setProjects(nextProjects);
-      setCurrentMember(member);
-      setError(null);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Projects could not be loaded.'
-      );
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    setQuery(submittedQuery);
+  }, [submittedQuery]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError(null);
+    void (async () => {
+      try {
+        const [nextProjects, member] = await Promise.all([
+          api.projects.list(submittedQuery),
+          api.members.current()
+        ]);
+        if (active) {
+          setProjects(nextProjects);
+          setCurrentMember(member);
+        }
+      } catch (requestError) {
+        if (active) {
+          setError(
+            requestError instanceof Error
+              ? requestError.message
+              : 'Projects could not be loaded.'
+          );
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [submittedQuery, reload]);
 
   const categories = useMemo(
-    () => [...new Set(projects.map((project) => project.category))].sort(),
-    [projects]
+    () => [...new Set([
+      ...projects.map((project) => project.category),
+      ...(categoryFilter === 'all' ? [] : [categoryFilter])
+    ])].sort(),
+    [projects, categoryFilter]
   );
 
   const filteredProjects = useMemo(
@@ -379,79 +533,23 @@ export function ProjectsPage() {
         );
   const contributorCount = new Set(projects.flatMap((project) => project.memberIds)).size;
 
+  function updateFilter(name: 'q' | 'status' | 'category', value: string) {
+    const next = new URLSearchParams(searchParams);
+    if (!value || (name !== 'q' && value === 'all')) {
+      next.delete(name);
+    } else {
+      next.set(name, value);
+    }
+    setSearchParams(next);
+  }
+
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedQuery = query.trim();
-    setSubmittedQuery(normalizedQuery);
-    setActionMessage(null);
-    setActionError(null);
-    void load(normalizedQuery);
-  }
-
-  function setMilestoneDefaults(project: Project) {
-    setMilestoneDrafts(
-      Object.fromEntries(
-        project.milestones.map((milestone) => [milestone.id, milestone.status])
-      )
-    );
-  }
-
-  async function showDetails(projectId: string) {
-    setRequestedProjectId(projectId);
-    setDetailLoading(true);
-    setDetailError(null);
-    setActionMessage(null);
-    setActionError(null);
-    try {
-      const project = await api.projects.get(projectId);
-      setSelectedProject(project);
-      setMilestoneDefaults(project);
-    } catch (requestError) {
-      setSelectedProject(null);
-      setDetailError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Project details could not be loaded.'
-      );
-    } finally {
-      setDetailLoading(false);
+    if (normalizedQuery === submittedQuery) {
+      setReload((value) => value + 1);
     }
-  }
-
-  function replaceProject(updated: Project) {
-    setProjects((current) =>
-      current.map((project) => (project.id === updated.id ? updated : project))
-    );
-    setSelectedProject(updated);
-    setMilestoneDefaults(updated);
-  }
-
-  async function updateMilestone(milestone: ProjectMilestone) {
-    if (!selectedProject) {
-      return;
-    }
-
-    const status = milestoneDrafts[milestone.id] || milestone.status;
-    setUpdatingMilestone(milestone.id);
-    setActionMessage(null);
-    setActionError(null);
-    try {
-      const updated = await api.projects.updateMilestone(
-        selectedProject.id,
-        milestone.id,
-        status
-      );
-      replaceProject(updated);
-      setActionMessage('Milestone status updated.');
-    } catch (requestError) {
-      setActionError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'The milestone could not be updated.'
-      );
-    } finally {
-      setUpdatingMilestone(null);
-    }
+    updateFilter('q', normalizedQuery);
   }
 
   function updateForm(field: keyof ProjectForm, value: string) {
@@ -481,14 +579,16 @@ export function ProjectsPage() {
     setCreating(true);
     try {
       const created = await api.projects.create(toProjectInput(form));
-      setProjects((current) => [created, ...current]);
-      setSelectedProject(created);
-      setMilestoneDefaults(created);
-      setActionError(null);
-      setActionMessage(`${created.name} was added as a project proposal.`);
+      if (!mounted.current) return;
       setDialogOpen(false);
       setForm(EMPTY_FORM);
       setFormErrors({});
+      navigate(`/projects/${encodeURIComponent(created.id)}${location.search}`, {
+        state: {
+          createdProjectId: created.id,
+          message: `${created.name} was added as a project proposal.`
+        }
+      });
     } catch (requestError) {
       setCreateError(
         requestError instanceof Error
@@ -509,14 +609,10 @@ export function ProjectsPage() {
       <StatePanel
         state="error"
         message={error || 'Projects are not available right now.'}
-        onRetry={() => void load(submittedQuery)}
+        onRetry={() => setReload((value) => value + 1)}
       />
     );
   }
-
-  const canUpdateMilestones =
-    selectedProject !== null &&
-    (selectedProject.leaderId === currentMember.id || isAdministrator(currentMember));
 
   return (
     <ServicePage
@@ -547,7 +643,7 @@ export function ProjectsPage() {
       <Panel>
         <div className={styles.toolbar}>
           <form role="search" className={styles.searchForm} onSubmit={search}>
-            <div className={`${styles.field} ${styles.grow}`}>
+            <div className={mergeClasses(styles.field, styles.grow)}>
               <Label htmlFor="project-search">Search projects</Label>
               <Input
                 id="project-search"
@@ -565,10 +661,11 @@ export function ProjectsPage() {
           <div className={styles.field}>
             <Label htmlFor="project-status-filter">Filter by status</Label>
             <Select
+              className={styles.control}
               id="project-status-filter"
               value={statusFilter}
               onChange={(_event, data) =>
-                setStatusFilter(data.value as ProjectStatusFilter)
+                updateFilter('status', data.value)
               }
             >
               {PROJECT_STATUSES.map((status) => (
@@ -581,9 +678,10 @@ export function ProjectsPage() {
           <div className={styles.field}>
             <Label htmlFor="project-category-filter">Filter by category</Label>
             <Select
+              className={styles.control}
               id="project-category-filter"
               value={categoryFilter}
-              onChange={(_event, data) => setCategoryFilter(data.value)}
+              onChange={(_event, data) => updateFilter('category', data.value)}
             >
               <option value="all">All categories</option>
               {categories.map((category) => (
@@ -599,7 +697,7 @@ export function ProjectsPage() {
       <section aria-labelledby="project-directory-heading">
         <div className={styles.sectionHeading}>
           <div>
-            <Text id="project-directory-heading" size={600} weight="semibold">
+            <Text as="h2" id="project-directory-heading" size={500} weight="semibold">
               Project directory
             </Text>
             <Text block className={styles.secondaryText}>
@@ -607,15 +705,6 @@ export function ProjectsPage() {
               {filteredProjects.length === 1 ? 'project' : 'projects'} shown
             </Text>
           </div>
-        </div>
-
-        <div className={styles.feedback} aria-live="polite">
-          {actionMessage ? <Text>{actionMessage}</Text> : null}
-          {actionError ? (
-            <Text role="alert" className={styles.error}>
-              {actionError}
-            </Text>
-          ) : null}
         </div>
 
         {loading ? (
@@ -629,30 +718,38 @@ export function ProjectsPage() {
         ) : (
           <CardGrid>
             {filteredProjects.map((project) => (
-              <article key={project.id}>
+              <article key={project.id} aria-labelledby={`project-title-${project.id}`}>
                 <Card className={styles.card}>
                   <div className={styles.cardBody}>
                     <div className={styles.cardHeading}>
-                      <div>
-                        <Title3 as="h3">{project.name}</Title3>
-                        <Text block className={styles.secondaryText}>
+                      <Text
+                        as="h3"
+                        id={`project-title-${project.id}`}
+                        size={400}
+                        weight="semibold"
+                        className={styles.cardTitle}
+                      >
+                        {project.name}
+                      </Text>
+                      <div className={styles.cardMeta}>
+                        <Text size={200} className={styles.secondaryText}>
                           {project.category}
                         </Text>
+                        <StatusBadge status={formatStatus(project.status)} />
                       </div>
-                      <StatusBadge status={formatStatus(project.status)} />
                     </div>
                     <Text>{project.tagline}</Text>
                     <ul className={styles.tags} aria-label={`Tags for ${project.name}`}>
                       {project.tags.map((tag) => (
                         <li key={tag}>
-                          <Badge appearance="outline">{tag}</Badge>
+                          <Badge className={styles.tag} appearance="outline">{tag}</Badge>
                         </li>
                       ))}
                     </ul>
                     <div className={styles.progress}>
                       <div className={styles.progressLabel}>
-                        <Text>Progress</Text>
-                        <Text>{project.progress}%</Text>
+                        <Text size={200} className={styles.secondaryText}>Progress</Text>
+                        <Text size={200} weight="semibold">{project.progress}%</Text>
                       </div>
                       <ProgressBar
                         value={project.progress / 100}
@@ -660,17 +757,16 @@ export function ProjectsPage() {
                       />
                     </div>
                     <div className={styles.cardFooter}>
-                      <Text className={styles.secondaryText}>
+                      <Text size={200} className={styles.secondaryText}>
                         {project.memberIds.length}{' '}
                         {project.memberIds.length === 1 ? 'team member' : 'team members'}
                       </Text>
-                      <Button
-                        appearance="secondary"
-                        aria-label={`View ${project.name} details`}
-                        onClick={() => void showDetails(project.id)}
+                      <ProjectNavigationLink
+                        to={`/projects/${encodeURIComponent(project.id)}${location.search}`}
+                        label={`View ${project.name} details`}
                       >
                         View details
-                      </Button>
+                      </ProjectNavigationLink>
                     </div>
                   </div>
                 </Card>
@@ -680,144 +776,6 @@ export function ProjectsPage() {
         )}
       </section>
 
-      {detailLoading ? (
-        <StatePanel state="loading" message="Loading project details" />
-      ) : detailError ? (
-        <div role="alert" className={styles.detail}>
-          <Text className={styles.error}>{detailError}</Text>
-          <Button
-            onClick={() => {
-              if (requestedProjectId) {
-                void showDetails(requestedProjectId);
-              }
-            }}
-          >
-            Try details again
-          </Button>
-        </div>
-      ) : selectedProject ? (
-        <Panel>
-          <div className={styles.detail} aria-labelledby="project-detail-heading">
-            <div className={styles.detailHeader}>
-              <div>
-                <Text id="project-detail-heading" as="h2" size={700} weight="semibold">
-                  Project details
-                </Text>
-                <Title3 as="h3">{selectedProject.name}</Title3>
-              </div>
-              <Button
-                appearance="subtle"
-                aria-label="Close project details"
-                onClick={() => {
-                  setSelectedProject(null);
-                  setRequestedProjectId(null);
-                  setDetailError(null);
-                }}
-              >
-                Close
-              </Button>
-            </div>
-            <Text>{selectedProject.description}</Text>
-            <div className={styles.detailMeta}>
-              <StatusBadge status={formatStatus(selectedProject.status)} />
-              <Text>{selectedProject.category}</Text>
-              <Text>
-                {selectedProject.memberIds.length}{' '}
-                {selectedProject.memberIds.length === 1 ? 'team member' : 'team members'}
-              </Text>
-              {selectedProject.repositoryUrl ? (
-                <Link
-                  href={selectedProject.repositoryUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open repository
-                </Link>
-              ) : null}
-            </div>
-
-            <section aria-labelledby="project-team-heading">
-              <Text id="project-team-heading" as="h3" size={500} weight="semibold">
-                Team
-              </Text>
-              <ul className={styles.teamList}>
-                {selectedProject.memberIds.map((memberId) => (
-                  <li key={memberId}>
-                    <Badge appearance="tint">
-                      {memberId === selectedProject.leaderId ? `${memberId} · Leader` : memberId}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section aria-labelledby="project-milestones-heading">
-              <Text id="project-milestones-heading" as="h3" size={500} weight="semibold">
-                Milestones
-              </Text>
-              {selectedProject.milestones.length === 0 ? (
-                <Text block className={styles.secondaryText}>
-                  Milestones will be added as this proposal moves into active delivery.
-                </Text>
-              ) : (
-                <ul className={styles.milestones}>
-                  {selectedProject.milestones.map((milestone) => (
-                    <li key={milestone.id} className={styles.milestone}>
-                      <div className={styles.milestoneCopy}>
-                        <Text weight="semibold">{milestone.title}</Text>
-                        <Text className={styles.secondaryText}>
-                          Due {formatDate(milestone.dueDate)}
-                        </Text>
-                        {!canUpdateMilestones ? (
-                          <StatusBadge status={formatStatus(milestone.status)} />
-                        ) : null}
-                      </div>
-                      {canUpdateMilestones ? (
-                        <div className={styles.milestoneActions}>
-                          <div className={styles.field}>
-                            <Label htmlFor={`milestone-status-${milestone.id}`}>Status</Label>
-                            <Select
-                              id={`milestone-status-${milestone.id}`}
-                              aria-label={`Status for ${milestone.title}`}
-                              value={milestoneDrafts[milestone.id] || milestone.status}
-                              onChange={(_event, data) =>
-                                setMilestoneDrafts((current) => ({
-                                  ...current,
-                                  [milestone.id]: data.value as MilestoneStatus
-                                }))
-                              }
-                            >
-                              {MILESTONE_STATUSES.map((status) => (
-                                <option key={status.value} value={status.value}>
-                                  {status.label}
-                                </option>
-                              ))}
-                            </Select>
-                          </div>
-                          <Button
-                            appearance="primary"
-                            aria-label={`Save ${milestone.title} status`}
-                            disabled={updatingMilestone !== null}
-                            onClick={() => void updateMilestone(milestone)}
-                          >
-                            {updatingMilestone === milestone.id ? 'Saving…' : 'Save'}
-                          </Button>
-                        </div>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {!canUpdateMilestones && selectedProject.milestones.length > 0 ? (
-                <Text block className={styles.secondaryText}>
-                  Milestone changes are available to the project leader and administrators.
-                </Text>
-              ) : null}
-            </section>
-          </div>
-        </Panel>
-      ) : null}
-
       <Dialog
         open={dialogOpen}
         onOpenChange={(_event, data) => {
@@ -826,9 +784,9 @@ export function ProjectsPage() {
           }
         }}
       >
-        <DialogSurface aria-describedby="project-proposal-description">
+        <DialogSurface className={styles.dialogSurface} aria-describedby="project-proposal-description">
           <form className={styles.dialogForm} onSubmit={createProject} noValidate>
-            <DialogBody>
+            <DialogBody className={styles.dialogBody}>
               <DialogTitle>Propose a project</DialogTitle>
               <DialogContent>
                 <Text id="project-proposal-description" block>
@@ -905,7 +863,7 @@ export function ProjectsPage() {
                   </Text>
                 ) : null}
               </DialogContent>
-              <DialogActions>
+              <DialogActions className={styles.dialogActions}>
                 <Button type="button" appearance="secondary" onClick={closeDialog} disabled={creating}>
                   Cancel
                 </Button>
@@ -917,6 +875,221 @@ export function ProjectsPage() {
           </form>
         </DialogSurface>
       </Dialog>
+    </ServicePage>
+  );
+}
+
+function ProjectDetailPage({ projectId }: { projectId: string }) {
+  const styles = useStyles();
+  const location = useLocation();
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [currentMember, setCurrentMember] = useState<Member | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [reload, setReload] = useState(0);
+  const [error, setError] = useState<{ message: string; notFound: boolean } | null>(null);
+  const [milestoneDrafts, setMilestoneDrafts] = useState<Record<string, MilestoneStatus>>({});
+  const [updatingMilestone, setUpdatingMilestone] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(() =>
+    location.state?.createdProjectId === projectId && typeof location.state?.message === 'string'
+      ? location.state.message
+      : null
+  );
+  const [actionError, setActionError] = useState<string | null>(null);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    let active = true;
+    setLoading(true);
+    setError(null);
+    setSelectedProject(null);
+    setCurrentMember(null);
+    void (async () => {
+      try {
+        const [project, member] = await Promise.all([
+          api.projects.get(projectId),
+          api.members.current()
+        ]);
+        if (active) {
+          setSelectedProject(project);
+          setCurrentMember(member);
+          setMilestoneDrafts(Object.fromEntries(
+            project.milestones.map((milestone) => [milestone.id, milestone.status])
+          ));
+        }
+      } catch (requestError) {
+        if (active) {
+          setError({
+            message: requestError instanceof Error ? requestError.message : 'Project details could not be loaded.',
+            notFound: typeof requestError === 'object' && requestError !== null &&
+              'status' in requestError && requestError.status === 404
+          });
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+      mounted.current = false;
+    };
+  }, [projectId, reload]);
+
+  async function updateMilestone(milestone: ProjectMilestone) {
+    if (!selectedProject) return;
+    const status = milestoneDrafts[milestone.id] || milestone.status;
+    setUpdatingMilestone(milestone.id);
+    setActionMessage(null);
+    setActionError(null);
+    try {
+      const updated = await api.projects.updateMilestone(selectedProject.id, milestone.id, status);
+      if (!mounted.current) return;
+      setSelectedProject(updated);
+      setMilestoneDrafts(Object.fromEntries(
+        updated.milestones.map((item) => [item.id, item.status])
+      ));
+      setActionMessage('Milestone status updated.');
+    } catch (requestError) {
+      if (mounted.current) {
+        setActionError(
+          requestError instanceof Error ? requestError.message : 'The milestone could not be updated.'
+        );
+      }
+    } finally {
+      if (mounted.current) setUpdatingMilestone(null);
+    }
+  }
+
+  const canUpdateMilestones = selectedProject !== null && currentMember !== null &&
+    (selectedProject.leaderId === currentMember.id || isAdministrator(currentMember));
+
+  return (
+    <ServicePage
+      area="projects"
+      title={selectedProject?.name || 'Project details'}
+      description={selectedProject?.tagline || 'Review this project, its team, and delivery milestones.'}
+      actions={
+        <ProjectNavigationLink to={`/projects${location.search}`}>
+          Back to projects
+        </ProjectNavigationLink>
+      }
+    >
+      {actionMessage ? <Text role="status">{actionMessage}</Text> : null}
+      {actionError ? <Text role="alert" className={styles.error}>{actionError}</Text> : null}
+      {loading ? (
+        <StatePanel state="loading" message="Loading project details" />
+      ) : error || !selectedProject ? (
+        <StatePanel
+          state="error"
+          title={error?.notFound ? 'Project not found' : 'Project details unavailable'}
+          message={error?.message || 'This project could not be loaded.'}
+          onRetry={() => setReload((value) => value + 1)}
+        />
+      ) : (
+        <Panel>
+          <div className={styles.detail}>
+            <div className={styles.detailMeta}>
+              <StatusBadge status={formatStatus(selectedProject.status)} />
+              <Text>{selectedProject.category}</Text>
+              <Text>
+                {selectedProject.memberIds.length}{' '}
+                {selectedProject.memberIds.length === 1 ? 'team member' : 'team members'}
+              </Text>
+              {selectedProject.repositoryUrl ? (
+                <Link href={selectedProject.repositoryUrl} target="_blank" rel="noreferrer">
+                  Open repository
+                </Link>
+              ) : null}
+            </div>
+            <Text>{selectedProject.description}</Text>
+            <ul className={styles.tags} aria-label={`Tags for ${selectedProject.name}`}>
+              {selectedProject.tags.map((tag) => (
+                <li key={tag}>
+                  <Badge className={styles.tag} appearance="outline">{tag}</Badge>
+                </li>
+              ))}
+            </ul>
+            <div className={styles.progress}>
+              <div className={styles.progressLabel}>
+                <Text>Progress</Text>
+                <Text weight="semibold">{selectedProject.progress}%</Text>
+              </div>
+              <ProgressBar
+                value={selectedProject.progress / 100}
+                aria-label={`${selectedProject.name} progress: ${selectedProject.progress}%`}
+              />
+            </div>
+            <section className={styles.detailSection} aria-labelledby="project-team-heading">
+              <Text id="project-team-heading" as="h2" size={500} weight="semibold">Team</Text>
+              <ul className={styles.teamList}>
+                {selectedProject.memberIds.map((memberId) => (
+                  <li key={memberId}>
+                    <Badge className={styles.tag} appearance="tint">
+                      {memberId === selectedProject.leaderId ? `${memberId} · Leader` : memberId}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section className={styles.detailSection} aria-labelledby="project-milestones-heading">
+              <Text id="project-milestones-heading" as="h2" size={500} weight="semibold">Milestones</Text>
+              {selectedProject.milestones.length === 0 ? (
+                <Text block className={styles.secondaryText}>
+                  Milestones will be added as this proposal moves into active delivery.
+                </Text>
+              ) : (
+                <ul className={styles.milestones}>
+                  {selectedProject.milestones.map((milestone) => (
+                    <li key={milestone.id} className={styles.milestone}>
+                      <div className={styles.milestoneCopy}>
+                        <Text weight="semibold">{milestone.title}</Text>
+                        <Text className={styles.secondaryText}>Due {formatDate(milestone.dueDate)}</Text>
+                        {!canUpdateMilestones ? (
+                          <StatusBadge status={formatStatus(milestone.status)} />
+                        ) : null}
+                      </div>
+                      {canUpdateMilestones ? (
+                        <div className={styles.milestoneActions}>
+                          <div className={mergeClasses(styles.field, styles.grow)}>
+                            <Label htmlFor={`milestone-status-${milestone.id}`}>Status</Label>
+                            <Select
+                              className={styles.control}
+                              id={`milestone-status-${milestone.id}`}
+                              aria-label={`Status for ${milestone.title}`}
+                              value={milestoneDrafts[milestone.id] || milestone.status}
+                              onChange={(_event, data) => setMilestoneDrafts((current) => ({
+                                ...current,
+                                [milestone.id]: data.value as MilestoneStatus
+                              }))}
+                            >
+                              {MILESTONE_STATUSES.map((status) => (
+                                <option key={status.value} value={status.value}>{status.label}</option>
+                              ))}
+                            </Select>
+                          </div>
+                          <Button
+                            appearance="primary"
+                            aria-label={`Save ${milestone.title} status`}
+                            disabled={updatingMilestone !== null}
+                            onClick={() => void updateMilestone(milestone)}
+                          >
+                            {updatingMilestone === milestone.id ? 'Saving…' : 'Save'}
+                          </Button>
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!canUpdateMilestones && selectedProject.milestones.length > 0 ? (
+                <Text block className={styles.secondaryText}>
+                  Milestone changes are available to the project leader and administrators.
+                </Text>
+              ) : null}
+            </section>
+          </div>
+        </Panel>
+      )}
     </ServicePage>
   );
 }

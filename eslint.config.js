@@ -13,6 +13,11 @@ export default tseslint.config(
       'services/*/src/**/*.{ts,tsx}',
       'packages/*/src/**/*.{ts,tsx}'
     ],
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: import.meta.dirname
+      }
+    },
     rules: {
       '@typescript-eslint/no-explicit-any': 'error'
     }

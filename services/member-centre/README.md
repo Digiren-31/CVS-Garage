@@ -2,9 +2,16 @@
 
 **Owner:** Member Centre team. **Status:** integrated MVP.
 
-The Member Centre route provides a searchable member and mentor directory with
-aggregate stats. Synthetic Admin identities can suspend/restore non-admin
-accounts and grant/revoke Mentor capability; the backend enforces every action.
+`/member-centre` provides a searchable directory with concise profile previews
+and aggregate stats. `/member-centre/members/:memberId` displays a single
+profile, including contact information, skills, and expertise. Synthetic Admin
+identities can suspend/restore non-admin accounts and grant/revoke Mentor
+capability on the individual page; the backend enforces every action.
+
+Search lives in the `q` query parameter and is preserved when opening and
+returning from a profile. Direct profile URLs resolve the member from the
+unfiltered directory API, independent of discovery filters. Missing profiles
+and request failures include a return link; request failures can be retried.
 
 The centralized API is rooted at `/api/v1/member-centre`, and local synthetic
 state is stored in `backend/data/member-centre.json`.

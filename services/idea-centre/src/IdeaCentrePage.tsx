@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Card,
   Checkbox,
@@ -14,6 +15,7 @@ import {
   Text,
   Textarea,
   makeStyles,
+  mergeClasses,
   shorthands,
   tokens
 } from '@fluentui/react-components';
@@ -31,46 +33,99 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../../packages/api-client/src';
 import type { CreateIdeaInput, Idea } from '../../../packages/contracts/src';
 import {
   CardGrid,
   MetricCard,
   MetricGrid,
+  Panel,
   ServicePage,
   StatePanel,
-  StatusBadge
+  StatusBadge,
+  glassTokens
 } from '../../../packages/ui/src';
 
 const useStyles = makeStyles({
+  routeLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    color: tokens.colorBrandForeground1,
+    textDecorationLine: 'none',
+    minHeight: '36px',
+    ':hover': { textDecorationLine: 'underline' }
+  },
   toolbar: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(220px, 2fr) repeat(3, minmax(140px, 1fr)) auto',
+    minWidth: 0,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
     gap: tokens.spacingHorizontalM,
     alignItems: 'end',
-    '@media (max-width: 900px)': {
-      gridTemplateColumns: '1fr 1fr'
-    },
-    '@media (max-width: 560px)': {
-      gridTemplateColumns: '1fr'
+    '& > *': {
+      minWidth: 0
     }
+  },
+  searchRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    minWidth: 0,
+    gridColumn: '1 / -1',
+    alignItems: 'flex-end',
+    gap: tokens.spacingHorizontalS
+  },
+  searchField: {
+    minWidth: 0,
+    flex: '1 1 260px'
+  },
+  field: {
+    minWidth: 0,
+    maxWidth: '100%',
+    gridTemplateColumns: 'minmax(0, 1fr)'
   },
   searchActions: {
     display: 'flex',
+    minWidth: 0,
+    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: tokens.spacingHorizontalS
   },
+  control: {
+    minWidth: 0,
+    width: '100%',
+    maxWidth: '100%'
+  },
   cardBody: {
-    display: 'grid',
-    gap: tokens.spacingVerticalM,
-    ...shorthands.padding(0, tokens.spacingHorizontalM, tokens.spacingVerticalM)
+    display: 'flex',
+    flexDirection: 'column',
+    flexGrow: 1,
+    minWidth: 0,
+    gap: tokens.spacingVerticalM
   },
   ideaCard: {
     position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    height: '100%',
+    gap: tokens.spacingVerticalM,
+    overflowWrap: 'anywhere',
     cursor: 'pointer',
-    ...shorthands.padding(tokens.spacingVerticalM, 0, 0),
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    WebkitBackdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
+    ...shorthands.padding(tokens.spacingVerticalL),
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    ...shorthands.borderRadius(tokens.borderRadiusLarge),
+    ':hover': {
+      backgroundColor: glassTokens.surfaceHover,
+      boxShadow: glassTokens.shadowHover
+    },
     ':focus-visible': {
       outlineStyle: 'solid',
       outlineWidth: '2px',
@@ -80,25 +135,30 @@ const useStyles = makeStyles({
   },
   ideaCardHeader: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) max-content',
-    gap: tokens.spacingHorizontalM,
-    alignItems: 'start',
-    ...shorthands.padding(0, tokens.spacingHorizontalM)
+    minWidth: 0,
+    gap: tokens.spacingVerticalS
   },
   ideaHeading: {
     minWidth: 0,
     display: 'grid',
-    gap: tokens.spacingVerticalXXS
+    gap: tokens.spacingVerticalS
+  },
+  ideaTitleHeading: {
+    minWidth: 0,
+    marginBlock: 0,
+    lineHeight: tokens.lineHeightBase400
   },
   ideaTitleButton: {
     appearance: 'none',
+    minWidth: 0,
     width: '100%',
     color: tokens.colorNeutralForeground1,
     backgroundColor: 'transparent',
     textAlign: 'left',
-    fontSize: tokens.fontSizeBase500,
-    lineHeight: tokens.lineHeightBase500,
+    fontSize: tokens.fontSizeBase400,
+    lineHeight: tokens.lineHeightBase400,
     fontWeight: tokens.fontWeightSemibold,
+    overflowWrap: 'anywhere',
     ...shorthands.border('0'),
     ...shorthands.padding(0),
     cursor: 'pointer',
@@ -107,15 +167,29 @@ const useStyles = makeStyles({
     }
   },
   statusSlot: {
-    minWidth: 'max-content',
-    justifySelf: 'end',
-    whiteSpace: 'nowrap'
+    minWidth: 0,
+    maxWidth: '100%',
+    display: 'flex',
+    alignItems: 'center'
   },
   commentSummary: {
-    justifySelf: 'start'
+    minWidth: 0,
+    alignSelf: 'flex-start'
+  },
+  cardFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    minWidth: 0,
+    gap: tokens.spacingHorizontalS,
+    marginTop: 'auto',
+    paddingTop: tokens.spacingVerticalM,
+    ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2)
   },
   detailActions: {
     display: 'flex',
+    minWidth: 0,
     flexWrap: 'wrap',
     justifyContent: 'flex-end',
     alignItems: 'center',
@@ -123,8 +197,22 @@ const useStyles = makeStyles({
   },
   detailCard: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalL,
-    ...shorthands.padding(tokens.spacingVerticalXXL)
+    overflowWrap: 'anywhere',
+    backgroundColor: glassTokens.surface,
+    backdropFilter: glassTokens.blur,
+    WebkitBackdropFilter: glassTokens.blur,
+    boxShadow: glassTokens.shadow,
+    ...shorthands.border('1px', 'solid', glassTokens.border),
+    ...shorthands.borderRadius(tokens.borderRadiusLarge),
+    ...shorthands.padding(tokens.spacingVerticalXL),
+    '& > *': {
+      minWidth: 0
+    },
+    '@media (max-width: 600px)': {
+      ...shorthands.padding(tokens.spacingVerticalL)
+    }
   },
   detailDescription: {
     whiteSpace: 'pre-wrap',
@@ -132,72 +220,129 @@ const useStyles = makeStyles({
   },
   metadata: {
     display: 'flex',
+    minWidth: 0,
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalS,
     alignItems: 'center'
+  },
+  iconText: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS,
+    minWidth: 0,
+    marginBlock: 0,
+    '& > svg': {
+      flexShrink: 0
+    }
   },
   muted: {
     color: tokens.colorNeutralForeground2
   },
   tags: {
     display: 'flex',
+    minWidth: 0,
+    alignItems: 'center',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalXS
   },
   tag: {
-    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalS),
-    ...shorthands.borderRadius(tokens.borderRadiusCircular),
-    backgroundColor: tokens.colorNeutralBackground3
+    minWidth: 0,
+    maxWidth: '100%',
+    height: 'auto',
+    minHeight: tokens.lineHeightBase400,
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+    lineHeight: tokens.lineHeightBase200,
+    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalS)
   },
   actions: {
     display: 'flex',
+    minWidth: 0,
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalS,
     alignItems: 'center'
   },
   comments: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalS,
     ...shorthands.padding(tokens.spacingVerticalS, 0, 0),
     ...shorthands.borderTop('1px', 'solid', tokens.colorNeutralStroke2)
   },
   commentList: {
     display: 'grid',
+    minWidth: 0,
     gap: tokens.spacingVerticalS,
     listStyleType: 'none',
     ...shorthands.margin(0),
     ...shorthands.padding(0)
   },
   comment: {
+    minWidth: 0,
     ...shorthands.padding(tokens.spacingVerticalS),
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     backgroundColor: tokens.colorNeutralBackground2
   },
   commentForm: {
     display: 'grid',
-    gridTemplateColumns: '1fr auto',
+    minWidth: 0,
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
     gap: tokens.spacingHorizontalS,
     alignItems: 'end',
+    '& > *': {
+      minWidth: 0
+    },
     '@media (max-width: 560px)': {
       gridTemplateColumns: '1fr'
     }
   },
   form: {
     display: 'grid',
-    gap: tokens.spacingVerticalM
+    minWidth: 0,
+    gap: tokens.spacingVerticalM,
+    '& > *': {
+      minWidth: 0
+    }
   },
   formRow: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    minWidth: 0,
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: tokens.spacingHorizontalM,
+    '& > *': {
+      minWidth: 0
+    },
     '@media (max-width: 560px)': {
       gridTemplateColumns: '1fr'
     }
   },
   announcement: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
     ...shorthands.padding(tokens.spacingVerticalS, tokens.spacingHorizontalM),
     ...shorthands.borderRadius(tokens.borderRadiusMedium),
     backgroundColor: tokens.colorNeutralBackground2
+  },
+  dialogSurface: {
+    minWidth: 0,
+    width: `min(640px, calc(100vw - ${tokens.spacingHorizontalL} * 2))`,
+    maxWidth: '100%',
+    maxHeight: `calc(100dvh - ${tokens.spacingVerticalL} * 2)`,
+    overflowY: 'auto'
+  },
+  dialogBody: {
+    minWidth: 0,
+    overflowWrap: 'anywhere',
+    '& > *': {
+      minWidth: 0
+    }
+  },
+  dialogActions: {
+    display: 'flex',
+    minWidth: 0,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: tokens.spacingHorizontalS
   },
   error: {
     color: tokens.colorPaletteRedForeground1
@@ -223,11 +368,19 @@ export function IdeaCentrePage() {
   const styles = useStyles();
   const navigate = useNavigate();
   const { ideaId } = useParams<{ ideaId?: string }>();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get('q') || '';
+  const track = searchParams.get('track') || '';
+  const difficulty = searchParams.get('difficulty') || '';
+  const status = searchParams.get('status') || '';
+  const requestVersion = useRef(0);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const loadKey = ideaId ? `idea:${ideaId}` : `list:${searchQuery}`;
+  const backLink = <Link className={styles.routeLink} to={`/idea-centre${location.search}`}><ArrowLeft size={16} aria-hidden="true" />Back to ideas</Link>;
+  const detailHref = (id: string) => `/idea-centre/ideas/${encodeURIComponent(id)}${location.search}`;
   const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [search, setSearch] = useState('');
-  const [track, setTrack] = useState('');
-  const [difficulty, setDifficulty] = useState('');
-  const [status, setStatus] = useState('');
+  const [search, setSearch] = useState(searchQuery);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -241,26 +394,46 @@ export function IdeaCentrePage() {
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
   const loadIdeas = useCallback(async (query = '') => {
+    const request = ++requestVersion.current;
+    const key = ideaId ? `idea:${ideaId}` : `list:${query}`;
     setLoading(true);
     try {
-      setIdeas(await api.ideas.list(query));
-      setLoadError(null);
+      const result = await api.ideas.list(ideaId ? '' : query);
+      if (request === requestVersion.current) {
+        setIdeas(result);
+        setLoadError(null);
+      }
     } catch (error) {
-      setLoadError(
-        error instanceof Error ? error.message : 'Ideas could not be loaded.'
-      );
+      if (request === requestVersion.current) {
+        setLoadError(error instanceof Error ? error.message : 'Ideas could not be loaded.');
+      }
     } finally {
-      setLoading(false);
+      if (request === requestVersion.current) {
+        setLoadedKey(key);
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [ideaId]);
 
   useEffect(() => {
-    void loadIdeas();
-  }, [loadIdeas]);
+    setActionError(null);
+    setAnnouncement(null);
+    void loadIdeas(searchQuery);
+    return () => { requestVersion.current += 1; };
+  }, [loadIdeas, searchQuery]);
+
+  useEffect(() => setSearch(searchQuery), [searchQuery]);
+
+  function updateFilter(key: string, value: string) {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSearchParams(next, { replace: true });
+  }
 
   const tracks = useMemo(
-    () => [...new Set(ideas.map((idea) => idea.track))].sort(),
-    [ideas]
+    () => [...new Set([...ideas.map((idea) => idea.track), ...(track ? [track] : [])])].sort(),
+    [ideas, track]
   );
   const visibleIdeas = useMemo(
     () =>
@@ -304,7 +477,8 @@ export function IdeaCentrePage() {
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
-    void loadIdeas(search.trim());
+    if (search.trim() === searchQuery) void loadIdeas(searchQuery);
+    else updateFilter('q', search.trim());
   };
 
   const submitIdea = (event: FormEvent) => {
@@ -380,9 +554,9 @@ export function IdeaCentrePage() {
         }
       }}
     >
-      <DialogSurface>
+      <DialogSurface className={styles.dialogSurface}>
         <form className={styles.form} onSubmit={submitJoinRequest}>
-          <DialogBody>
+          <DialogBody className={styles.dialogBody}>
             <DialogTitle>Request to join {joinIdea?.title}</DialogTitle>
             <DialogContent>
               {actionError ? (
@@ -403,7 +577,7 @@ export function IdeaCentrePage() {
                 />
               </Field>
             </DialogContent>
-            <DialogActions>
+            <DialogActions className={styles.dialogActions}>
               <Button
                 type="button"
                 appearance="secondary"
@@ -428,12 +602,14 @@ export function IdeaCentrePage() {
     </Dialog>
   );
 
-  if (loading) {
-    return <StatePanel state="loading" message="Loading ideas and collaboration status" />;
+  if (loading || loadedKey !== loadKey) {
+    const state = <StatePanel state="loading" message="Loading ideas and collaboration status" />;
+    return ideaId ? <ServicePage area="idea-centre" title="Idea details" description="Loading the idea." actions={backLink}>{state}</ServicePage> : state;
   }
 
   if (loadError) {
-    return <StatePanel state="error" message={loadError} onRetry={() => void loadIdeas(search)} />;
+    const state = <StatePanel state="error" message={loadError} onRetry={() => void loadIdeas(searchQuery)} />;
+    return ideaId ? <ServicePage area="idea-centre" title="Idea unavailable" description="The idea could not be loaded." actions={backLink}>{state}</ServicePage> : state;
   }
 
   if (ideaId && !selectedIdea) {
@@ -442,15 +618,7 @@ export function IdeaCentrePage() {
         area="idea-centre"
         title="Idea not found"
         description="This idea does not exist or is no longer available."
-        actions={
-          <Button
-            appearance="primary"
-            icon={<ArrowLeft size={18} aria-hidden="true" />}
-            onClick={() => navigate('/idea-centre')}
-          >
-            Back to ideas
-          </Button>
-        }
+        actions={backLink}
       />
     );
   }
@@ -472,13 +640,7 @@ export function IdeaCentrePage() {
         actions={
           <div className={styles.detailActions}>
             <StatusBadge status={selectedIdea.status} />
-            <Button
-              appearance="secondary"
-              icon={<ArrowLeft size={18} aria-hidden="true" />}
-              onClick={() => navigate('/idea-centre')}
-            >
-              Back to ideas
-            </Button>
+            {backLink}
           </div>
         }
       >
@@ -490,17 +652,17 @@ export function IdeaCentrePage() {
         ) : null}
 
         <Card className={styles.detailCard}>
-          <Text size={500} weight="semibold">{selectedIdea.tagline}</Text>
+          <Text size={400} weight="semibold">{selectedIdea.tagline}</Text>
           <Text className={styles.detailDescription}>
             {selectedIdea.description}
           </Text>
           <div className={styles.metadata}>
             <StatusBadge status={selectedIdea.difficulty} />
-            <Text>
+            <Text className={styles.iconText}>
               <Users size={15} aria-hidden="true" /> {selectedIdea.memberIds.length} of{' '}
               {selectedIdea.targetTeamSize} team places filled
             </Text>
-            <Text>
+            <Text className={styles.iconText}>
               <Lightbulb size={15} aria-hidden="true" />{' '}
               {selectedIdea.assignedMentorName
                 ? `Mentored by ${selectedIdea.assignedMentorName}`
@@ -514,9 +676,9 @@ export function IdeaCentrePage() {
           </Text>
           <div className={styles.tags} aria-label="Technology and topic tags">
             {selectedIdea.techStack.map((technology) => (
-              <Text key={technology} size={200} className={styles.tag}>
+              <Badge key={technology} appearance="outline" className={styles.tag}>
                 {technology}
-              </Text>
+              </Badge>
             ))}
           </div>
           <div className={styles.actions}>
@@ -559,7 +721,7 @@ export function IdeaCentrePage() {
             className={styles.comments}
             aria-label={`Comments on ${selectedIdea.title}`}
           >
-            <Text weight="semibold">
+            <Text as="h2" size={400} weight="semibold" className={styles.iconText}>
               <MessageSquare size={16} aria-hidden="true" /> Comments ({selectedIdea.comments.length})
             </Text>
             {selectedIdea.comments.length > 0 ? (
@@ -645,59 +807,74 @@ export function IdeaCentrePage() {
         />
       </MetricGrid>
 
-      <form role="search" className={styles.toolbar} onSubmit={submitSearch}>
-        <Field label="Search ideas">
-          <Input
-            type="search"
-            value={search}
-            onChange={(_, data) => setSearch(data.value)}
-            placeholder="Search topics, tracks, people, or technology"
-          />
-        </Field>
-        <Field label="Track">
-          <Select value={track} onChange={(event) => setTrack(event.target.value)}>
-            <option value="">All tracks</option>
-            {tracks.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Difficulty">
-          <Select
-            value={difficulty}
-            onChange={(event) => setDifficulty(event.target.value)}
-          >
-            <option value="">All difficulties</option>
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
-          </Select>
-        </Field>
-        <Field label="Status">
-          <Select value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="">All statuses</option>
-            <option value="Open">Open</option>
-            <option value="In Progress">In progress</option>
-            <option value="Completed">Completed</option>
-          </Select>
-        </Field>
-        <div className={styles.searchActions}>
-          <Button type="submit" appearance="primary">Search</Button>
-          <Button
-            type="button"
-            appearance="subtle"
-            onClick={() => {
-              setSearch('');
-              setTrack('');
-              setDifficulty('');
-              setStatus('');
-              void loadIdeas();
-            }}
-          >
-            Clear
-          </Button>
-        </div>
-      </form>
+      <Panel>
+        <form role="search" className={styles.toolbar} onSubmit={submitSearch}>
+          <div className={styles.searchRow}>
+            <Field className={mergeClasses(styles.field, styles.searchField)} label="Search ideas">
+              <Input
+                className={styles.control}
+                type="search"
+                value={search}
+                onChange={(_, data) => setSearch(data.value)}
+                placeholder="Search topics, tracks, people, or technology"
+              />
+            </Field>
+            <div className={styles.searchActions}>
+              <Button type="submit" appearance="primary">Search</Button>
+              <Button
+                type="button"
+                appearance="subtle"
+                onClick={() => {
+                  setSearch('');
+                  if (!location.search) void loadIdeas();
+                  else setSearchParams({}, { replace: true });
+                }}
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
+          <Field className={styles.field} label="Track">
+            <Select
+              className={styles.control}
+              select={{ className: styles.control }}
+              value={track}
+              onChange={(event) => updateFilter('track', event.target.value)}
+            >
+              <option value="">All tracks</option>
+              {tracks.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field className={styles.field} label="Difficulty">
+            <Select
+              className={styles.control}
+              select={{ className: styles.control }}
+              value={difficulty}
+              onChange={(event) => updateFilter('difficulty', event.target.value)}
+            >
+              <option value="">All difficulties</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </Select>
+          </Field>
+          <Field className={styles.field} label="Status">
+            <Select
+              className={styles.control}
+              select={{ className: styles.control }}
+              value={status}
+              onChange={(event) => updateFilter('status', event.target.value)}
+            >
+              <option value="">All statuses</option>
+              <option value="Open">Open</option>
+              <option value="In Progress">In progress</option>
+              <option value="Completed">Completed</option>
+            </Select>
+          </Field>
+        </form>
+      </Panel>
 
       {announcement ? (
         <Text role="status" className={styles.announcement}>{announcement}</Text>
@@ -734,7 +911,7 @@ export function IdeaCentrePage() {
                 onClick={(event) => {
                   const target = event.target as HTMLElement;
                   if (!target.closest('button, input, select, textarea, a')) {
-                    navigate(`/idea-centre/ideas/${encodeURIComponent(idea.id)}`);
+                    navigate(detailHref(idea.id));
                   }
                 }}
                 onKeyDown={(event) => {
@@ -743,37 +920,38 @@ export function IdeaCentrePage() {
                     (event.key === 'Enter' || event.key === ' ')
                   ) {
                     event.preventDefault();
-                    navigate(`/idea-centre/ideas/${encodeURIComponent(idea.id)}`);
+                    navigate(detailHref(idea.id));
                   }
                 }}
               >
                 <div className={styles.ideaCardHeader}>
                   <div className={styles.ideaHeading}>
-                    <button
-                      type="button"
-                      className={styles.ideaTitleButton}
-                      aria-label={`Open ${idea.title}`}
-                      onClick={() =>
-                        navigate(`/idea-centre/ideas/${encodeURIComponent(idea.id)}`)
-                      }
-                    >
-                      {idea.title}
-                    </button>
-                    <Text>{idea.ticketCode} · {idea.track}</Text>
+                    <h2 className={styles.ideaTitleHeading}>
+                      <Link
+                        to={detailHref(idea.id)}
+                        className={styles.ideaTitleButton}
+                        aria-label={`Open ${idea.title}`}
+                      >
+                        {idea.title}
+                      </Link>
+                    </h2>
+                    <div className={styles.metadata}>
+                      <Text size={200} className={styles.muted}>{idea.ticketCode} · {idea.track}</Text>
+                      <span className={styles.statusSlot}>
+                        <StatusBadge status={idea.status} />
+                      </span>
+                    </div>
                   </div>
-                  <span className={styles.statusSlot}>
-                    <StatusBadge status={idea.status} />
-                  </span>
                 </div>
                 <div className={styles.cardBody}>
-                  <Text weight="semibold">{idea.tagline}</Text>
+                  <Text>{idea.tagline}</Text>
                   <div className={styles.metadata}>
                     <StatusBadge status={idea.difficulty} />
-                    <Text>
+                    <Text size={200} className={styles.iconText}>
                       <Users size={15} aria-hidden="true" /> {idea.memberIds.length} of{' '}
                       {idea.targetTeamSize} team places filled
                     </Text>
-                    <Text>
+                    <Text size={200} className={styles.iconText}>
                       <Lightbulb size={15} aria-hidden="true" />{' '}
                       {idea.assignedMentorName
                         ? `Mentored by ${idea.assignedMentorName}`
@@ -787,60 +965,62 @@ export function IdeaCentrePage() {
                   </Text>
                   <div className={styles.tags} aria-label="Technology and topic tags">
                     {idea.techStack.map((technology) => (
-                      <Text key={technology} size={200} className={styles.tag}>
+                      <Badge key={technology} appearance="outline" className={styles.tag}>
                         {technology}
-                      </Text>
+                      </Badge>
                     ))}
                   </div>
-                  <div className={styles.actions}>
-                    <Button
-                      appearance={idea.savedByCurrentUser ? 'primary' : 'secondary'}
-                      icon={
-                        idea.savedByCurrentUser
-                          ? <BookmarkCheck size={17} aria-hidden="true" />
-                          : <Bookmark size={17} aria-hidden="true" />
-                      }
-                      aria-label={`${idea.savedByCurrentUser ? 'Remove' : 'Save'} ${idea.title}${
-                        idea.savedByCurrentUser ? ' from saved ideas' : ''
-                      }`}
-                      disabled={saveBusy}
-                      onClick={() => toggleSave(idea)}
-                    >
-                      {idea.savedByCurrentUser ? 'Saved' : 'Save'}
-                    </Button>
-                    {canRequestJoin ? (
+                  <div className={styles.cardFooter}>
+                    <div className={styles.actions}>
                       <Button
-                        appearance="secondary"
-                        onClick={() => {
-                          setActionError(null);
-                          setJoinIdea(idea);
-                          setJoinMessage('');
-                        }}
+                        appearance={idea.savedByCurrentUser ? 'primary' : 'secondary'}
+                        icon={
+                          idea.savedByCurrentUser
+                            ? <BookmarkCheck size={17} aria-hidden="true" />
+                            : <Bookmark size={17} aria-hidden="true" />
+                        }
+                        aria-label={`${idea.savedByCurrentUser ? 'Remove' : 'Save'} ${idea.title}${
+                          idea.savedByCurrentUser ? ' from saved ideas' : ''
+                        }`}
+                        disabled={saveBusy}
+                        onClick={() => toggleSave(idea)}
                       >
-                        Request to join
+                        {idea.savedByCurrentUser ? 'Saved' : 'Save'}
                       </Button>
-                    ) : (
-                      <Text size={200}>
-                        {isOnTeam
-                          ? 'You are on this team'
-                          : teamIsFull
-                            ? 'Team is full'
-                            : idea.joinRequestStatus
-                              ? `Join request ${idea.joinRequestStatus.toLocaleLowerCase()}`
-                              : 'Not accepting requests'}
-                      </Text>
-                    )}
+                      {canRequestJoin ? (
+                        <Button
+                          appearance="secondary"
+                          onClick={() => {
+                            setActionError(null);
+                            setJoinIdea(idea);
+                            setJoinMessage('');
+                          }}
+                        >
+                          Request to join
+                        </Button>
+                      ) : (
+                        <Text size={200}>
+                          {isOnTeam
+                            ? 'You are on this team'
+                            : teamIsFull
+                              ? 'Team is full'
+                              : idea.joinRequestStatus
+                                ? `Join request ${idea.joinRequestStatus.toLocaleLowerCase()}`
+                                : 'Not accepting requests'}
+                        </Text>
+                      )}
+                    </div>
+                    <Button
+                      className={styles.commentSummary}
+                      appearance="subtle"
+                      icon={<MessageSquare size={16} aria-hidden="true" />}
+                      onClick={() =>
+                        navigate(detailHref(idea.id))
+                      }
+                    >
+                      {idea.comments.length} {idea.comments.length === 1 ? 'comment' : 'comments'}
+                    </Button>
                   </div>
-                  <Button
-                    className={styles.commentSummary}
-                    appearance="subtle"
-                    icon={<MessageSquare size={16} aria-hidden="true" />}
-                    onClick={() =>
-                      navigate(`/idea-centre/ideas/${encodeURIComponent(idea.id)}`)
-                    }
-                  >
-                    {idea.comments.length} {idea.comments.length === 1 ? 'comment' : 'comments'}
-                  </Button>
                 </div>
               </Card>
             );
@@ -852,9 +1032,9 @@ export function IdeaCentrePage() {
         open={createOpen}
         onOpenChange={(_, data) => setCreateOpen(data.open)}
       >
-        <DialogSurface>
+        <DialogSurface className={styles.dialogSurface}>
           <form className={styles.form} onSubmit={submitIdea}>
-            <DialogBody>
+            <DialogBody className={styles.dialogBody}>
               <DialogTitle>Submit an idea</DialogTitle>
               <DialogContent className={styles.form}>
                 {actionError ? (
@@ -907,6 +1087,8 @@ export function IdeaCentrePage() {
                   </Field>
                   <Field label="Difficulty" required>
                     <Select
+                      className={styles.control}
+                      select={{ className: styles.control }}
                       value={createForm.difficulty}
                       onChange={(event) =>
                         setCreateForm((current) => ({
@@ -961,7 +1143,7 @@ export function IdeaCentrePage() {
                   label="I am seeking a mentor"
                 />
               </DialogContent>
-              <DialogActions>
+              <DialogActions className={styles.dialogActions}>
                 <Button
                   type="button"
                   appearance="secondary"

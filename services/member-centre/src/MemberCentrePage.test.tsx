@@ -1,5 +1,6 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import type { Member, MemberStats } from '../../../packages/contracts/src';
 import { MemberCentrePage } from './MemberCentrePage';
 
@@ -57,6 +58,28 @@ vi.mock('../../../packages/api-client/src', () => ({
   }
 }));
 
+function LocationControls() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <>
+    <output aria-label="Current URL">{location.pathname}{location.search}</output>
+    <button onClick={() => navigate(-1)}>Browser back</button>
+    <button onClick={() => navigate(1)}>Browser forward</button>
+  </>;
+}
+
+function renderMembers(entry = '/member-centre') {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <LocationControls />
+      <Routes>
+        <Route path="/member-centre" element={<MemberCentrePage />} />
+        <Route path="/member-centre/members/:memberId" element={<MemberCentrePage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
 describe('MemberCentrePage', () => {
   afterEach(cleanup);
 
@@ -73,13 +96,21 @@ describe('MemberCentrePage', () => {
     });
   });
 
-  it('renders stats, profiles, and administrator actions', async () => {
-    render(<MemberCentrePage />);
+  it('keeps directory previews compact and puts administrator actions on the profile page', async () => {
+    renderMembers();
 
     expect(screen.getByText('Loading member profiles')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Find your people' })).toBeInTheDocument();
-    expect(screen.getByText('Rahul Sharma')).toBeInTheDocument();
+    const preview = within(screen.getByRole('article', { name: 'Rahul Sharma member profile' }));
+    expect(preview.getByRole('heading', { name: 'Rahul Sharma', level: 3 })).toBeInTheDocument();
+    expect(preview.queryByRole('link', { name: student.email })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Suspend Rahul Sharma' })).not.toBeInTheDocument();
     expect(screen.getByText('Total members')).toBeInTheDocument();
+    fireEvent.click(preview.getByRole('link', { name: 'View profile' }));
+    await screen.findByRole('heading', { name: 'Rahul Sharma', level: 1 });
+    expect(screen.queryByRole('search')).not.toBeInTheDocument();
+    const profile = within(screen.getByRole('region', { name: 'Rahul Sharma profile details' }));
+    expect(profile.getByRole('link', { name: student.email })).toHaveAttribute('href', `mailto:${student.email}`);
 
     fireEvent.click(screen.getByRole('button', { name: 'Suspend Rahul Sharma' }));
     await waitFor(() =>
@@ -93,7 +124,7 @@ describe('MemberCentrePage', () => {
 
   it('searches through the shared API client and renders an empty state', async () => {
     apiMock.list.mockResolvedValueOnce([admin, student]).mockResolvedValueOnce([]);
-    render(<MemberCentrePage />);
+    renderMembers();
     await screen.findByText('Rahul Sharma');
 
     fireEvent.change(screen.getByRole('searchbox', { name: 'Search members' }), {
@@ -107,10 +138,48 @@ describe('MemberCentrePage', () => {
 
   it('shows an actionable error when the directory cannot be loaded', async () => {
     apiMock.list.mockRejectedValueOnce(new Error('Member service unavailable'));
-    render(<MemberCentrePage />);
+    renderMembers();
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Member service unavailable');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(apiMock.list).toHaveBeenCalledTimes(2));
+  });
+
+  it('loads direct profile URLs independently of search and preserves back navigation', async () => {
+    renderMembers('/member-centre/members/mem-student-1?q=React');
+    await screen.findByRole('heading', { name: 'Rahul Sharma', level: 1 });
+    expect(apiMock.list).toHaveBeenLastCalledWith('');
+    expect(apiMock.stats).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('link', { name: 'Back to members' }));
+    await screen.findByRole('heading', { name: 'Find your people' });
+    expect(screen.getByRole('searchbox', { name: 'Search members' })).toHaveValue('React');
+    expect(apiMock.list).toHaveBeenLastCalledWith('React');
+    fireEvent.click(screen.getByRole('button', { name: 'Browser back' }));
+    expect(await screen.findByRole('heading', { name: 'Rahul Sharma', level: 1 })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Browser forward' }));
+    expect(await screen.findByRole('heading', { name: 'Find your people' })).toBeInTheDocument();
+  });
+
+  it('handles missing profiles without showing the directory or administrator actions', async () => {
+    renderMembers('/member-centre/members/missing');
+    expect(await screen.findByRole('heading', { name: 'Member not found' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to members' })).toHaveAttribute('href', '/member-centre');
+    expect(screen.queryByRole('search')).not.toBeInTheDocument();
+  });
+
+  it('keeps non-administrators from seeing profile mutation controls', async () => {
+    apiMock.current.mockResolvedValue(student);
+    renderMembers('/member-centre/members/mem-admin-1');
+    await screen.findByRole('heading', { name: 'Vikram Sen', level: 1 });
+    expect(screen.queryByRole('button', { name: /Suspend|Grant mentor|Revoke mentor/ })).not.toBeInTheDocument();
+  });
+
+  it('allows recovery or return when a direct profile request fails', async () => {
+    apiMock.list.mockRejectedValueOnce(new Error('Member service unavailable'));
+    renderMembers('/member-centre/members/mem-student-1?q=React');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Member service unavailable');
+    expect(screen.getByRole('link', { name: 'Back to members' })).toHaveAttribute('href', '/member-centre?q=React');
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('heading', { name: 'Rahul Sharma', level: 1 })).toBeInTheDocument();
   });
 });
