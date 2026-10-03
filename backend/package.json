@@ -5,8 +5,8 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "start": "node --env-file-if-exists=../.env.local src/server.js",
+    "dev": "node --env-file-if-exists=../.env.local --watch src/server.js",
     "build": "node scripts/validate-build.js",
     "test": "cross-env NODE_ENV=test node --test tests/*.test.js",
     "lint": "node scripts/validate-build.js",
@@ -23,8 +23,10 @@
   "author": "CVS Garage Team",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "cors": "^2.8.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",

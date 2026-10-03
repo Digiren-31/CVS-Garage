@@ -123,7 +123,7 @@ export class LeaderboardDomainService {
       if (recorded.revokedAt) {
         delete recorded.revokedAt;
         recorded.recordedAt = new Date().toISOString();
-        this.store.persist();
+        await this.store.persist({ actorId: event.memberId });
         return {
           success: true,
           duplicate: false,
@@ -154,7 +154,7 @@ export class LeaderboardDomainService {
       occurredAt: validTimestamp(event.timestamp, recordedAt),
       recordedAt
     });
-    this.store.persist();
+    await this.store.persist({ actorId: event.memberId });
 
     return {
       success: true,
@@ -181,7 +181,7 @@ export class LeaderboardDomainService {
     }
 
     recorded.revokedAt = new Date().toISOString();
-    this.store.persist();
+    await this.store.persist({ actorId: recorded.memberId });
     return {
       success: true,
       changed: true,

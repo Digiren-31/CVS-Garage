@@ -2,6 +2,7 @@ import {
   lazy,
   Suspense,
   useEffect,
+  useCallback,
   useMemo,
   useState,
   type ComponentType,
@@ -18,8 +19,10 @@ import {
 } from '../../../packages/ui/src';
 import { Toaster } from '@fluentui/react-components';
 import { AppShell } from './components/AppShell';
+import { AuthGate } from './components/AuthGate';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { PrivacyPage, TermsPage } from './pages/LegalPage';
 
 const DashboardPage = lazy(async () => ({
   default: (await import('./pages/DashboardPage')).DashboardPage
@@ -77,6 +80,39 @@ function LazyService({
   );
 }
 
+type PortalAuthMode = ReturnType<typeof api.auth.mode>;
+
+function ProtectedService({
+  component,
+  mode,
+  member,
+  loading,
+  error,
+  onSignIn,
+  onSignOut
+}: {
+  component: LazyExoticComponent<ComponentType>;
+  mode: PortalAuthMode;
+  member: Member | null;
+  loading: boolean;
+  error: string | null;
+  onSignIn: () => void;
+  onSignOut: () => void;
+}) {
+  return (
+    <AuthGate
+      mode={mode}
+      member={member}
+      loading={loading}
+      error={error}
+      onSignIn={onSignIn}
+      onSignOut={onSignOut}
+    >
+      <LazyService component={component} />
+    </AuthGate>
+  );
+}
+
 export function App() {
   const location = useLocation();
   const [themeMode, setThemeMode] = useState<ThemeMode>(getStoredTheme);
@@ -84,13 +120,16 @@ export function App() {
   const [identityLoading, setIdentityLoading] = useState(true);
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [identityVersion, setIdentityVersion] = useState(0);
+  const [currentMember, setCurrentMember] = useState<Member | null>(null);
+  const [realtimeVersion, setRealtimeVersion] = useState(0);
+  const authMode = api.auth.mode();
 
   const area = useMemo(
     () => areaByPath.find(([path]) => location.pathname.startsWith(path))?.[1] || 'portal',
     [location.pathname]
   );
 
-  useEffect(() => {
+  const loadDemoMembers = useCallback(() => {
     let active = true;
     api.members
       .list()
@@ -113,6 +152,66 @@ export function App() {
     };
   }, []);
 
+  const loadSupabaseSession = useCallback(async () => {
+    setIdentityLoading(true);
+    try {
+      const session = await api.auth.getSession();
+      if (!session) {
+        api.setAuthenticatedUserId(null);
+        setCurrentMember(null);
+        setMembers([]);
+        setIdentityError(null);
+        return;
+      }
+
+      const member = await api.auth.currentMember();
+      api.setAuthenticatedUserId(member.id);
+      setCurrentMember(member);
+      if (member.status === 'active') {
+        setMembers(await api.members.list());
+      } else {
+        setMembers([member]);
+      }
+      setIdentityError(null);
+    } catch (error) {
+      api.setAuthenticatedUserId(null);
+      setCurrentMember(null);
+      setMembers([]);
+      setIdentityError(
+        error instanceof Error ? error.message : 'The secure session could not be loaded.'
+      );
+    } finally {
+      setIdentityLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authMode === 'demo') {
+      return loadDemoMembers();
+    }
+    if (authMode === 'misconfigured') {
+      setIdentityLoading(false);
+      setIdentityError('Production authentication is not configured.');
+      return undefined;
+    }
+
+    void loadSupabaseSession();
+    return api.auth.onChange(() => {
+      window.setTimeout(() => {
+        void loadSupabaseSession();
+      }, 0);
+    });
+  }, [authMode, loadDemoMembers, loadSupabaseSession]);
+
+  useEffect(() => {
+    if (authMode !== 'supabase' || currentMember?.status !== 'active') {
+      return undefined;
+    }
+    return api.subscribeToRealtime(['forum', 'events', 'projects'], () => {
+      setRealtimeVersion((version) => version + 1);
+    });
+  }, [authMode, currentMember?.id, currentMember?.status]);
+
   function updateTheme(nextMode: ThemeMode) {
     setThemeMode(nextMode);
     try {
@@ -127,6 +226,37 @@ export function App() {
     setIdentityVersion((version) => version + 1);
   }
 
+  async function signIn() {
+    try {
+      setIdentityError(null);
+      await api.auth.signInWithGoogle();
+    } catch (error) {
+      setIdentityError(error instanceof Error ? error.message : 'Google sign-in could not start.');
+    }
+  }
+
+  async function signOut() {
+    try {
+      await api.auth.signOut();
+      api.setAuthenticatedUserId(null);
+      setCurrentMember(null);
+      setMembers([]);
+      setIdentityError(null);
+    } catch (error) {
+      setIdentityError(error instanceof Error ? error.message : 'Sign-out failed.');
+    }
+  }
+
+  const protectedProps = {
+    mode: authMode,
+    member: currentMember,
+    loading: identityLoading,
+    error: identityError,
+    onSignIn: () => { void signIn(); },
+    onSignOut: () => { void signOut(); }
+  };
+  const dataVersion = `${identityVersion}-${realtimeVersion}`;
+
   return (
     <CvsThemeProvider area={area} mode={themeMode}>
       <Toaster position="top-end" />
@@ -137,59 +267,73 @@ export function App() {
               <AppShell
                 members={members}
                 currentUserId={api.getUserId()}
+                authenticatedMember={currentMember}
+                authMode={authMode}
                 identityError={identityError}
                 identityLoading={identityLoading}
                 themeMode={themeMode}
                 onThemeChange={updateTheme}
                 onIdentityChange={updateIdentity}
+                onSignIn={protectedProps.onSignIn}
+                onSignOut={protectedProps.onSignOut}
               />
             }
           >
-            <Route index element={<LazyService key={`dashboard-${identityVersion}`} component={DashboardPage} />} />
+            <Route index element={<LazyService key={`dashboard-${dataVersion}`} component={DashboardPage} />} />
+            <Route
+              path="auth/callback"
+              element={
+                identityLoading
+                  ? <StatePanel state="loading" message="Completing Google sign-in" />
+                  : <Navigate to={api.auth.consumeReturnTo()} replace />
+              }
+            />
+            <Route path="privacy" element={<PrivacyPage />} />
+            <Route path="terms" element={<TermsPage />} />
             <Route
               path="projects"
-              element={<LazyService key={`projects-${identityVersion}`} component={ProjectsPage} />}
+              element={<ProtectedService key={`projects-${dataVersion}`} component={ProjectsPage} {...protectedProps} />}
             />
             <Route
               path="projects/:projectId"
-              element={<LazyService key={`projects-${identityVersion}`} component={ProjectsPage} />}
+              element={<ProtectedService key={`projects-${dataVersion}`} component={ProjectsPage} {...protectedProps} />}
             />
             <Route
               path="events"
-              element={<LazyService key={`events-${identityVersion}`} component={EventsPage} />}
+              element={<ProtectedService key={`events-${dataVersion}`} component={EventsPage} {...protectedProps} />}
             />
             <Route
               path="events/:eventId"
-              element={<LazyService key={`events-${identityVersion}`} component={EventsPage} />}
+              element={<ProtectedService key={`events-${dataVersion}`} component={EventsPage} {...protectedProps} />}
             />
             <Route
               path="member-centre"
-              element={<LazyService key={`members-${identityVersion}`} component={MemberCentrePage} />}
+              element={<ProtectedService key={`members-${dataVersion}`} component={MemberCentrePage} {...protectedProps} />}
             />
             <Route
               path="member-centre/members/:memberId"
-              element={<LazyService key={`members-${identityVersion}`} component={MemberCentrePage} />}
+              element={<ProtectedService key={`members-${dataVersion}`} component={MemberCentrePage} {...protectedProps} />}
             />
             <Route
               path="leaderboards/*"
-              element={<LazyService key={`leaderboards-${identityVersion}`} component={LeaderboardsPage} />}
+              element={<ProtectedService key={`leaderboards-${dataVersion}`} component={LeaderboardsPage} {...protectedProps} />}
             />
             <Route
               path="idea-centre"
-              element={<LazyService key={`ideas-${identityVersion}`} component={IdeaCentrePage} />}
+              element={<ProtectedService key={`ideas-${dataVersion}`} component={IdeaCentrePage} {...protectedProps} />}
             />
             <Route
               path="idea-centre/ideas/:ideaId"
-              element={<LazyService key={`ideas-${identityVersion}`} component={IdeaCentrePage} />}
+              element={<ProtectedService key={`ideas-${dataVersion}`} component={IdeaCentrePage} {...protectedProps} />}
             />
             <Route
               path="forum"
-              element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />}
+              element={<ProtectedService key={`forum-${dataVersion}`} component={ForumPage} {...protectedProps} />}
             />
-            <Route path="forum/posts/:postId" element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />} />
-            <Route path="forum/communities" element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />} />
-            <Route path="forum/mentors" element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />} />
-            <Route path="forum/moderation" element={<LazyService key={`forum-${identityVersion}`} component={ForumPage} />} />
+            <Route path="forum/posts/:postId" element={<ProtectedService key={`forum-${dataVersion}`} component={ForumPage} {...protectedProps} />} />
+            <Route path="forum/communities" element={<ProtectedService key={`forum-${dataVersion}`} component={ForumPage} {...protectedProps} />} />
+            <Route path="forum/mentors" element={<ProtectedService key={`forum-${dataVersion}`} component={ForumPage} {...protectedProps} />} />
+            <Route path="forum/moderation" element={<ProtectedService key={`forum-${dataVersion}`} component={ForumPage} {...protectedProps} />} />
             <Route path="home" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>

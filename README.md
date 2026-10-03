@@ -5,6 +5,8 @@ Centre, Leaderboards, Idea Centre, and Forum & Discussions into one shared
 workspace. The repository now contains a runnable full-stack MVP with synthetic
 development data.
 
+**Live pilot:** [https://cvs-garage-pilot.onrender.com](https://cvs-garage-pilot.onrender.com)
+
 ## Technology baseline
 
 - **Portal:** React, TypeScript, Vite, React Router, Fluent UI React v9, and
@@ -12,13 +14,15 @@ development data.
 - **Backend:** Express modular monolith with versioned REST endpoints.
 - **Shared frontend:** typed contracts, a browser API client, and area-aware
   Fluent UI themes under `packages/`.
-- **Local persistence:** ignored JSON state files under `backend/data/`.
+- **Persistence:** ignored JSON state files for zero-service local development,
+  plus a versioned Supabase Postgres/Auth/Storage/Realtime production adapter.
 - **Validation:** Node test runner, Supertest, Vitest, Testing Library, ESLint,
   TypeScript, and production builds.
 
-The local persistence and development identity selector make the complete portal
-easy to demonstrate without external services. They are not a substitute for
-institutional SSO or the proposed PostgreSQL production schemas.
+The local persistence and development identity selector keep the complete portal
+easy to demonstrate without external services. Configured builds use Google
+OAuth, Admin approval, Supabase persistence, RLS, Storage, and selected Realtime
+refresh signals.
 
 ## Get started
 
@@ -36,6 +40,10 @@ The header's **Demo identity** avatar opens a clearly labelled synthetic identit
 Student, Mentor, Moderator, and Admin behavior. Every protected backend action
 still re-checks the selected identity and its permissions.
 
+When `SUPABASE_ENABLED=true`, the demo identity header is disabled. The portal
+uses Supabase Google OAuth access tokens, and service routes require an active
+Admin-approved profile. The public overview returns aggregate counts only.
+
 The shared workspace uses a full-width pure-white or pitch-black dashboard
 canvas, lightweight typography, and each service's assigned functional accent.
 Collapse the horizontal
@@ -51,6 +59,12 @@ npm start
 ```
 
 The backend serves the built portal and API from `http://localhost:4000`.
+
+The hosted pilot runs on Render Singapore with Supabase Mumbai. For deployment,
+recovery, and operational checks, follow
+[docs/supabase-deployment.md](docs/supabase-deployment.md). Never paste
+Supabase secret keys, the database password, or OAuth credentials into source
+files or chat.
 
 ### Validation
 
@@ -104,8 +118,8 @@ apps/portal
              ▼
       backend/src/modules
              │
-             ▼
-      backend/data (local ignored JSON state)
+             ├── backend/data (local ignored JSON state)
+             └── Supabase (hosted pilot persistence, identity, media, realtime)
 ```
 
 See [docs/architecture.md](docs/architecture.md) for decisions and production
@@ -114,7 +128,8 @@ boundaries, [docs/api.md](docs/api.md) for the local endpoint surface, and
 
 ## Local data and reset
 
-The backend creates synthetic state files in `backend/data/` on first use.
+With Supabase disabled, the backend creates synthetic state files in
+`backend/data/` on first use.
 Delete the individual JSON files while the backend is stopped to reset that
 domain to its seed data. The directory is ignored by Git.
 

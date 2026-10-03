@@ -1,0 +1,2 @@
+-- Production pilot data is imported idempotently from the current synthetic
+-- backend state by `npm run supabase:import`. No real user data belongs here.

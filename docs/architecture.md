@@ -24,6 +24,9 @@ later if scale or team autonomy requires it.
 | Contracts | TypeScript view models in `packages/contracts` |
 | Browser transport | Centralized fetch wrapper in `packages/api-client` |
 | Local persistence | Atomic JSON files in ignored `backend/data/` |
+| Hosted pilot persistence | Supabase Postgres aggregate adapter with optimistic versions |
+| Hosted identity | Supabase Google OAuth plus Admin approval |
+| Hosted media and live updates | Supabase Storage and sanitized Realtime events |
 | Tests | Node test runner, Supertest, Vitest, Testing Library |
 
 The production data target remains PostgreSQL. Existing SQL and detailed domain
@@ -67,7 +70,11 @@ rejected. This mechanism is deliberately labelled as development-only.
 Production identity requires the Member Centre design to be implemented with
 institutional SSO or short-lived access tokens, rotating HttpOnly refresh
 cookies, server-side session revocation, password recovery, and rate limiting.
-No local identity header may be trusted in production.
+No local identity header is trusted when Supabase is enabled. Production
+requests carry a Supabase bearer token; Express resolves the linked profile and
+requires `active` status for every service route. The public dashboard exposes
+aggregate counts only. New verified identities remain `pending` until an Admin
+activates them.
 
 ## Persistence boundary
 
@@ -76,10 +83,15 @@ Each backend domain owns one local JSON store created through
 an atomic rename. Tests use isolated seeded state and do not mutate checked-in
 files.
 
-Before production, replace these repositories with migrations and PostgreSQL
-adapters while preserving the service methods and HTTP contracts. The SQL and
-schema proposals under `backend/database` and the service architecture
-documents provide the starting data model.
+The hosted pilot replaces local files with five versioned `domain_state`
+aggregates in Supabase Postgres. Writes use an optimistic version check and fail
+on conflicts. Identity, member roles/status, audit records, media metadata, and
+Realtime signals are relational and RLS-protected. Browser roles cannot read
+the aggregate table directly.
+
+This is a deliberate migration seam: it preserves tested service behavior while
+making PostgreSQL authoritative. Normalize one domain at a time behind the same
+service interfaces rather than rewriting all workflows during pilot cutover.
 
 ## Cross-domain flows
 
@@ -107,6 +119,10 @@ both `/api/v1` and the built single-page application. No cloud environment,
 CI/CD pipeline, secrets, production database, email provider, queue, or object
 store is provisioned by this repository.
 
-Those operational decisions must include environment-specific configuration,
-managed secret storage, PostgreSQL migrations and backups, HTTPS, observability,
-rate limiting, content moderation operations, and rollback procedures.
+The pilot deploys that process to Render Singapore and uses the Supabase Mumbai
+project. Render owns runtime secrets and HTTPS. The repository includes
+versioned migrations, rate limiting, health checks, restricted upload policies,
+and a release/rollback runbook in
+[supabase-deployment.md](supabase-deployment.md). Paid-tier backups,
+institutional privacy review, and an uptime commitment remain gates for a broad
+college rollout.

@@ -30,6 +30,7 @@ for (const file of files) {
 }
 
 process.env.NODE_ENV = 'test';
+process.env.SUPABASE_ENABLED = 'false';
 await import('../src/server.js');
 
 console.log(`Validated ${files.length} backend JavaScript files and server module wiring.`);

@@ -150,6 +150,12 @@ const useStyles = makeStyles({
     ...shorthands.borderRadius(tokens.borderRadiusLarge),
     ...shorthands.padding(tokens.spacingVerticalL)
   },
+  coverImage: {
+    width: '100%',
+    height: '160px',
+    objectFit: 'cover',
+    borderRadius: tokens.borderRadiusMedium
+  },
   cardBody: {
     display: 'flex',
     flexDirection: 'column',
@@ -408,7 +414,7 @@ function validateProjectForm(form: ProjectForm): ProjectFormErrors {
   return errors;
 }
 
-function toProjectInput(form: ProjectForm): CreateProjectInput {
+function toProjectInput(form: ProjectForm, coverImageUrl?: string): CreateProjectInput {
   return {
     name: form.name.trim(),
     tagline: form.tagline.trim(),
@@ -417,7 +423,8 @@ function toProjectInput(form: ProjectForm): CreateProjectInput {
     tags: form.tags
       .split(',')
       .map((tag) => tag.trim())
-      .filter(Boolean)
+      .filter(Boolean),
+    ...(coverImageUrl ? { coverImageUrl } : {})
   };
 }
 
@@ -467,6 +474,7 @@ function ProjectDirectoryPage() {
   const [formErrors, setFormErrors] = useState<ProjectFormErrors>({});
   const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const mounted = useRef(false);
 
   useEffect(() => {
@@ -565,6 +573,7 @@ function ProjectDirectoryPage() {
     setForm(EMPTY_FORM);
     setFormErrors({});
     setCreateError(null);
+    setCoverFile(null);
   }
 
   async function createProject(event: FormEvent<HTMLFormElement>) {
@@ -577,11 +586,19 @@ function ProjectDirectoryPage() {
     }
 
     setCreating(true);
+    let coverId: string | null = null;
     try {
-      const created = await api.projects.create(toProjectInput(form));
+      const cover = coverFile
+        ? await api.media.upload(coverFile, 'project-cover')
+        : null;
+      coverId = cover?.id || null;
+      const created = await api.projects.create(
+        toProjectInput(form, cover?.url)
+      );
       if (!mounted.current) return;
       setDialogOpen(false);
       setForm(EMPTY_FORM);
+      setCoverFile(null);
       setFormErrors({});
       navigate(`/projects/${encodeURIComponent(created.id)}${location.search}`, {
         state: {
@@ -590,6 +607,13 @@ function ProjectDirectoryPage() {
         }
       });
     } catch (requestError) {
+      if (coverId) {
+        try {
+          await api.media.remove(coverId);
+        } catch (cleanupError) {
+          console.error('The unused project cover could not be cleaned up.', cleanupError);
+        }
+      }
       setCreateError(
         requestError instanceof Error
           ? requestError.message
@@ -721,6 +745,13 @@ function ProjectDirectoryPage() {
               <article key={project.id} aria-labelledby={`project-title-${project.id}`}>
                 <Card className={styles.card}>
                   <div className={styles.cardBody}>
+                    {project.coverImageUrl ? (
+                      <img
+                        className={styles.coverImage}
+                        src={project.coverImageUrl}
+                        alt=""
+                      />
+                    ) : null}
                     <div className={styles.cardHeading}>
                       <Text
                         as="h3"
@@ -854,6 +885,16 @@ function ProjectDirectoryPage() {
                       value={form.tags}
                       onChange={(_event, data) => updateForm('tags', data.value)}
                       placeholder="Accessibility, IoT, React"
+                    />
+                  </Field>
+                  <Field
+                    label="Project cover"
+                    hint="Optional JPEG, PNG, WebP, GIF, or AVIF up to 5 MB."
+                  >
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                      onChange={(event) => setCoverFile(event.target.files?.[0] || null)}
                     />
                   </Field>
                 </div>

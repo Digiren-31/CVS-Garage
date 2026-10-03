@@ -3,8 +3,9 @@
 **Owner:** portal maintainer. **Status:** runnable integrated application.
 
 The portal provides the shared application shell, dashboard, responsive
-navigation, development identity selector, light/dark/system mode control, and
-routes for all six service-owned frontends.
+navigation, light/dark/system mode control, and routes for all six
+service-owned frontends. Local builds retain the development identity selector;
+configured builds use Supabase Google OAuth and approval-aware route gates.
 
 ## Workspace experience
 
@@ -36,9 +37,9 @@ routes for all six service-owned frontends.
   modal drawer rather than inheriting the desktop collapsed state.
 - Filters, tags, cards, tables, and controls adapt to narrow layouts. Opaque
   surfaces and system colors are used where glass effects are not appropriate.
-- Use the header theme button to cycle System → Light → Dark → System. The
-  Demo avatar opens the clearly labelled synthetic identity selector; all
-  service flows remain available.
+- Use the header theme button to cycle System → Light → Dark → System. In local
+  demo mode the avatar opens the synthetic identity selector. In the hosted
+  pilot the header starts Google sign-in and exposes account sign-out.
 
 ## Item routes
 
@@ -74,6 +75,8 @@ Open `http://localhost:3000`. For a production-style local bundle, run
 - Shared presentation comes from `packages/ui`; browser transport comes from
   `packages/api-client`.
 - The identity selector is synthetic development tooling, not authentication.
+It is disabled when Supabase is enabled. Production service routes require an
+active member profile; pending and suspended users receive explicit gates.
 
 Read [INSTRUCTIONS.md](INSTRUCTIONS.md) and the repository
 [UI guidelines](../../docs/ui-guidelines.md) before editing.

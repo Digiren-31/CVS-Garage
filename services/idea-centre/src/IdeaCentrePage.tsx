@@ -346,6 +346,12 @@ const useStyles = makeStyles({
   },
   error: {
     color: tokens.colorPaletteRedForeground1
+  },
+  coverImage: {
+    width: '100%',
+    maxHeight: '320px',
+    objectFit: 'cover',
+    borderRadius: tokens.borderRadiusLarge
   }
 });
 
@@ -389,6 +395,7 @@ export function IdeaCentrePage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createForm, setCreateForm] = useState<CreateIdeaInput>(emptyForm);
   const [techStackText, setTechStackText] = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [joinIdea, setJoinIdea] = useState<Idea | null>(null);
   const [joinMessage, setJoinMessage] = useState('');
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
@@ -488,12 +495,33 @@ export function IdeaCentrePage() {
       .map((value) => value.trim())
       .filter(Boolean);
     void runAction('create', async () => {
-      const created = await api.ideas.create({ ...createForm, techStack });
-      setIdeas((current) => [created, ...current]);
-      setCreateForm(emptyForm);
-      setTechStackText('');
-      setCreateOpen(false);
-      setAnnouncement(`${created.title} was submitted to the Idea Centre.`);
+      let coverId: string | null = null;
+      try {
+        const cover = coverFile
+          ? await api.media.upload(coverFile, 'idea-cover')
+          : null;
+        coverId = cover?.id || null;
+        const created = await api.ideas.create({
+          ...createForm,
+          techStack,
+          ...(cover?.url ? { coverImageUrl: cover.url } : {})
+        });
+        setIdeas((current) => [created, ...current]);
+        setCreateForm(emptyForm);
+        setTechStackText('');
+        setCoverFile(null);
+        setCreateOpen(false);
+        setAnnouncement(`${created.title} was submitted to the Idea Centre.`);
+      } catch (error) {
+        if (coverId) {
+          try {
+            await api.media.remove(coverId);
+          } catch (cleanupError) {
+            console.error('The unused idea cover could not be cleaned up.', cleanupError);
+          }
+        }
+        throw error;
+      }
     });
   };
 
@@ -652,6 +680,9 @@ export function IdeaCentrePage() {
         ) : null}
 
         <Card className={styles.detailCard}>
+          {selectedIdea.coverImageUrl ? (
+            <img className={styles.coverImage} src={selectedIdea.coverImageUrl} alt="" />
+          ) : null}
           <Text size={400} weight="semibold">{selectedIdea.tagline}</Text>
           <Text className={styles.detailDescription}>
             {selectedIdea.description}
@@ -1142,12 +1173,25 @@ export function IdeaCentrePage() {
                   }
                   label="I am seeking a mentor"
                 />
+                <Field
+                  label="Idea cover"
+                  hint="Optional JPEG, PNG, WebP, GIF, or AVIF up to 5 MB."
+                >
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                    onChange={(event) => setCoverFile(event.target.files?.[0] || null)}
+                  />
+                </Field>
               </DialogContent>
               <DialogActions className={styles.dialogActions}>
                 <Button
                   type="button"
                   appearance="secondary"
-                  onClick={() => setCreateOpen(false)}
+                  onClick={() => {
+                    setCreateOpen(false);
+                    setCoverFile(null);
+                  }}
                 >
                   Cancel
                 </Button>

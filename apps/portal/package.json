@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fluentui/react-components": "9.74.9",
+    "@supabase/supabase-js": "^2.117.2",
     "framer-motion": "13.4.4",
     "lucide-react": "1.48.0",
     "react": "19.3.0",

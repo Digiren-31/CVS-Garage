@@ -15,10 +15,17 @@
     "lint": "node scripts/check-doc-links.mjs && npm run lint --workspace @cvs-garage/backend && eslint \"apps/portal/**/*.{ts,tsx}\" \"services/*/src/**/*.{ts,tsx}\" \"packages/*/src/**/*.{ts,tsx}\"",
     "typecheck": "npm run typecheck --workspace @cvs-garage/backend && npm run typecheck --workspace @cvs-garage/portal",
     "smoke": "node scripts/smoke.mjs",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run smoke"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run smoke",
+    "supabase:push:dry-run": "node --env-file-if-exists=.env.local scripts/supabase-db.mjs push --dry-run",
+    "supabase:push": "node --env-file-if-exists=.env.local scripts/supabase-db.mjs push",
+    "supabase:lint": "node --env-file-if-exists=.env.local scripts/supabase-db.mjs lint",
+    "supabase:import": "node --env-file-if-exists=.env.local backend/scripts/import-supabase-state.js",
+    "supabase:check-config": "node --env-file-if-exists=.env.local scripts/check-supabase-config.mjs",
+    "supabase:verify": "node --env-file-if-exists=.env.local scripts/verify-supabase.mjs"
   },
   "devDependencies": {
-    "concurrently": "10.0.5"
+    "concurrently": "10.0.5",
+    "supabase": "^2.119.0"
   },
   "engines": {
     "node": ">=22.12.0",

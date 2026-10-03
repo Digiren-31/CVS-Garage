@@ -49,7 +49,9 @@ const apiMock = vi.hoisted(() => ({
   stats: vi.fn(),
   current: vi.fn(),
   updateStatus: vi.fn(),
-  setMentor: vi.fn()
+  setMentor: vi.fn(),
+  setRole: vi.fn(),
+  anonymize: vi.fn()
 }));
 
 vi.mock('../../../packages/api-client/src', () => ({
@@ -94,6 +96,12 @@ describe('MemberCentrePage', () => {
       roles: ['Student', 'Mentor'],
       isMentor: true
     });
+    apiMock.setRole.mockReset().mockResolvedValue({
+      ...student,
+      roles: ['Student', 'Community Moderator'],
+      role: 'Community Moderator'
+    });
+    apiMock.anonymize.mockReset();
   });
 
   it('keeps directory previews compact and puts administrator actions on the profile page', async () => {
@@ -120,6 +128,14 @@ describe('MemberCentrePage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Grant mentor role to Rahul Sharma' }));
     await waitFor(() => expect(apiMock.setMentor).toHaveBeenCalledWith('mem-student-1', true));
+    fireEvent.click(screen.getByRole('button', { name: 'Grant moderator role to Rahul Sharma' }));
+    await waitFor(() =>
+      expect(apiMock.setRole).toHaveBeenCalledWith(
+        'mem-student-1',
+        'Community Moderator',
+        true
+      )
+    );
   });
 
   it('searches through the shared API client and renders an empty state', async () => {

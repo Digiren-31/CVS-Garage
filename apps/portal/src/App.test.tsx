@@ -24,14 +24,34 @@ const members = [
 const apiMock = vi.hoisted(() => ({
   getUserId: vi.fn(() => 'mem-student-1'),
   setUserId: vi.fn(),
+  setAuthenticatedUserId: vi.fn(),
   listMembers: vi.fn(),
-  getDashboard: vi.fn()
+  getDashboard: vi.fn(),
+  authMode: vi.fn<() => 'demo' | 'supabase' | 'misconfigured'>(() => 'demo'),
+  getSession: vi.fn(),
+  currentMember: vi.fn(),
+  signInWithGoogle: vi.fn(),
+  signOut: vi.fn(),
+  consumeReturnTo: vi.fn(() => '/'),
+  onChange: vi.fn(() => () => undefined),
+  subscribeToRealtime: vi.fn(() => () => undefined)
 }));
 
 vi.mock('../../../packages/api-client/src', () => ({
   api: {
     getUserId: apiMock.getUserId,
     setUserId: apiMock.setUserId,
+    setAuthenticatedUserId: apiMock.setAuthenticatedUserId,
+    auth: {
+      mode: apiMock.authMode,
+      getSession: apiMock.getSession,
+      currentMember: apiMock.currentMember,
+      signInWithGoogle: apiMock.signInWithGoogle,
+      signOut: apiMock.signOut,
+      consumeReturnTo: apiMock.consumeReturnTo,
+      onChange: apiMock.onChange
+    },
+    subscribeToRealtime: apiMock.subscribeToRealtime,
     members: {
       list: apiMock.listMembers
     },
@@ -63,6 +83,14 @@ describe('App', () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     apiMock.getUserId.mockReturnValue('mem-student-1');
+    apiMock.authMode.mockReturnValue('demo');
+    apiMock.getSession.mockResolvedValue(null);
+    apiMock.currentMember.mockReset();
+    apiMock.signInWithGoogle.mockReset();
+    apiMock.signOut.mockReset();
+    apiMock.consumeReturnTo.mockReturnValue('/');
+    apiMock.onChange.mockReturnValue(() => undefined);
+    apiMock.subscribeToRealtime.mockReturnValue(() => undefined);
     apiMock.setUserId.mockImplementation((userId: string) => apiMock.getUserId.mockReturnValue(userId));
     apiMock.listMembers.mockResolvedValue(members);
     apiMock.getDashboard.mockResolvedValue(emptySummary);
@@ -86,6 +114,36 @@ describe('App', () => {
         name: /Projects/
       })
     ).toHaveAttribute('href', '/projects');
+  });
+
+  it('protects service routes with Google sign-in in Supabase mode', async () => {
+    apiMock.authMode.mockReturnValue('supabase');
+    apiMock.getSession.mockResolvedValue(null);
+
+    render(
+      <MemoryRouter initialEntries={['/projects']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Sign in to continue' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Continue with Google' }));
+    expect(apiMock.signInWithGoogle).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the approval state without loading protected services', async () => {
+    apiMock.authMode.mockReturnValue('supabase');
+    apiMock.getSession.mockResolvedValue({ access_token: 'token' });
+    apiMock.currentMember.mockResolvedValue({ ...members[0], status: 'pending' });
+
+    render(
+      <MemoryRouter initialEntries={['/forum']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Approval is pending' })).toBeInTheDocument();
+    expect(apiMock.listMembers).not.toHaveBeenCalled();
   });
 
   it('keeps the overview focused without repeated workspace or profile sections', async () => {

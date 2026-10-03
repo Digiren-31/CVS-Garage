@@ -40,7 +40,7 @@ router.get(
       .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
       .slice(0, 3);
 
-    return sendSuccess(res, {
+    const summary = {
       memberCount: members.length,
       activeProjectCount: projects.filter((project) =>
         ['active', 'in_progress'].includes(project.status)
@@ -50,11 +50,13 @@ router.get(
       ).length,
       openIdeaCount: ideas.filter((idea) => ['Open', 'open'].includes(idea.status)).length,
       discussionCount: forumStore.posts.filter((post) => !post.deletedAt).length,
-      topContributor: leaderboards.entries[0] || null,
-      featuredProjects,
-      upcomingEvents,
-      recentIdeas
-    });
+      topContributor: currentUser ? leaderboards.entries[0] || null : null,
+      featuredProjects: currentUser ? featuredProjects : [],
+      upcomingEvents: currentUser ? upcomingEvents : [],
+      recentIdeas: currentUser ? recentIdeas : []
+    };
+
+    return sendSuccess(res, summary);
   })
 );
 
