@@ -9,6 +9,10 @@ configured builds use Supabase Google OAuth and approval-aware route gates.
 
 ## Workspace experience
 
+- Signed-out hosted visitors receive a lazy-loaded product landing page with
+  live aggregate metrics, six workspace previews, an approval-flow explanation,
+  free Unsplash photography, and short reduced-motion-safe entrances. Internal
+  workspace navigation remains hidden until an account is approved.
 - Pure-white light and pitch-black dark canvas bases use the shared neutral UI
   tokens, with subtle warm/violet gradient overlays and equal support for live
   system color mode. Service identities remain on functional navigation and
@@ -75,8 +79,8 @@ Open `http://localhost:3000`. For a production-style local bundle, run
 - Shared presentation comes from `packages/ui`; browser transport comes from
   `packages/api-client`.
 - The identity selector is synthetic development tooling, not authentication.
-It is disabled when Supabase is enabled. Production service routes require an
-active member profile; pending and suspended users receive explicit gates.
+  It is disabled when Supabase is enabled. Production service routes require an
+  active member profile; pending and suspended users receive explicit gates.
 
 Read [INSTRUCTIONS.md](INSTRUCTIONS.md) and the repository
 [UI guidelines](../../docs/ui-guidelines.md) before editing.

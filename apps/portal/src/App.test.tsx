@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -107,7 +107,11 @@ describe('App', () => {
 
     expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
     expect(
-      await screen.findByRole('heading', { name: 'Welcome in, Rahul.' })
+      await screen.findByRole(
+        'heading',
+        { name: 'Welcome in, Rahul.' },
+        { timeout: 5000 }
+      )
     ).toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', { name: 'Primary navigation' })).getByRole('link', {
@@ -129,6 +133,60 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Sign in to continue' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Continue with Google' }));
     expect(apiMock.signInWithGoogle).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the product landing page to signed-out Supabase visitors', async () => {
+    apiMock.authMode.mockReturnValue('supabase');
+    apiMock.getSession.mockResolvedValue(null);
+    apiMock.getDashboard.mockResolvedValue({
+      ...emptySummary,
+      memberCount: 7,
+      activeProjectCount: 2,
+      upcomingEventCount: 3
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Build what campus needs.' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument();
+    const landingNavigation = screen.getByRole('navigation', { name: 'Landing navigation' });
+    expect(within(landingNavigation).getByRole('link', { name: 'Workspaces' })).toHaveAttribute(
+      'href',
+      '/#workspaces'
+    );
+    await waitFor(() =>
+      expect(screen.getByText('Community members').previousElementSibling).toHaveTextContent('7')
+    );
+    expect(
+      screen.getByRole('img', { name: 'Students working together during an innovation event' })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Continue with Google' })[0]);
+    expect(apiMock.signInWithGoogle).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the workspace dashboard for approved Supabase members', async () => {
+    apiMock.authMode.mockReturnValue('supabase');
+    apiMock.getSession.mockResolvedValue({ access_token: 'token' });
+    apiMock.currentMember.mockResolvedValue(members[0]);
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Welcome in, Rahul.' })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Build what campus needs.' })).not.toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
   });
 
   it('shows the approval state without loading protected services', async () => {

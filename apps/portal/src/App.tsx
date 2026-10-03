@@ -27,6 +27,9 @@ import { PrivacyPage, TermsPage } from './pages/LegalPage';
 const DashboardPage = lazy(async () => ({
   default: (await import('./pages/DashboardPage')).DashboardPage
 }));
+const LandingPage = lazy(async () => ({
+  default: (await import('./pages/LandingPage')).LandingPage
+}));
 const ProjectsPage = lazy(async () => ({
   default: (await import('../../../services/projects/src')).ProjectsPage
 }));
@@ -109,6 +112,51 @@ function ProtectedService({
       onSignOut={onSignOut}
     >
       <LazyService component={component} />
+    </AuthGate>
+  );
+}
+
+function HomeRoute({
+  mode,
+  member,
+  loading,
+  error,
+  dataVersion,
+  onSignIn,
+  onSignOut
+}: {
+  mode: PortalAuthMode;
+  member: Member | null;
+  loading: boolean;
+  error: string | null;
+  dataVersion: string;
+  onSignIn: () => void;
+  onSignOut: () => void;
+}) {
+  if (mode === 'demo') {
+    return <LazyService key={`dashboard-${dataVersion}`} component={DashboardPage} />;
+  }
+  if (loading) {
+    return <StatePanel state="loading" message="Checking your secure session" />;
+  }
+  if (mode === 'supabase' && !member) {
+    return (
+      <Suspense fallback={<StatePanel state="loading" message="Loading CVS Garage" />}>
+        <LandingPage onSignIn={onSignIn} signInError={error} />
+      </Suspense>
+    );
+  }
+
+  return (
+    <AuthGate
+      mode={mode}
+      member={member}
+      loading={loading}
+      error={error}
+      onSignIn={onSignIn}
+      onSignOut={onSignOut}
+    >
+      <LazyService key={`dashboard-${dataVersion}`} component={DashboardPage} />
     </AuthGate>
   );
 }
@@ -279,7 +327,20 @@ export function App() {
               />
             }
           >
-            <Route index element={<LazyService key={`dashboard-${dataVersion}`} component={DashboardPage} />} />
+            <Route
+              index
+              element={
+                <HomeRoute
+                  mode={authMode}
+                  member={currentMember}
+                  loading={identityLoading}
+                  error={identityError}
+                  dataVersion={dataVersion}
+                  onSignIn={protectedProps.onSignIn}
+                  onSignOut={protectedProps.onSignOut}
+                />
+              }
+            />
             <Route
               path="auth/callback"
               element={

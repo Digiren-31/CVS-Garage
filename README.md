@@ -42,7 +42,8 @@ still re-checks the selected identity and its permissions.
 
 When `SUPABASE_ENABLED=true`, the demo identity header is disabled. The portal
 uses Supabase Google OAuth access tokens, and service routes require an active
-Admin-approved profile. The public overview returns aggregate counts only.
+Admin-approved profile. Signed-out visitors receive a product landing page whose
+only live data is the public aggregate campus totals.
 
 The shared workspace uses a full-width pure-white or pitch-black dashboard
 canvas, lightweight typography, and each service's assigned functional accent.
@@ -86,7 +87,7 @@ The owners below describe responsibilities; GitHub teams are not yet provisioned
 
 | Area | Working folder | Current MVP capability |
 | --- | --- | --- |
-| Central portal | [apps/portal](apps/portal/README.md) | Shell, dashboard, routing, theme and identity controls |
+| Central portal | [apps/portal](apps/portal/README.md) | Visitor landing, shell, dashboard, routing, theme and identity controls |
 | Projects | [services/projects](services/projects/README.md) | Project discovery, creation, milestones, teams, progress |
 | Events | [services/events](services/events/README.md) | Discovery, schedules, capacity, registration and cancellation |
 | Member Centre | [services/member-centre](services/member-centre/README.md) | Member directory, profiles, stats, admin status and mentor controls |
