@@ -22,13 +22,16 @@ export function createEventsRouter({
   const router = Router();
 
   async function resolveMember(req, required) {
+    if (req.member) {
+      return req.member;
+    }
     const memberId = readIdentity(req);
     if (!memberId) {
       if (required) {
         throw new EventsError(
           401,
           'AUTHENTICATION_REQUIRED',
-          'Select a development identity before changing an event registration.'
+          'Sign in before changing an event registration.'
         );
       }
       return null;
@@ -39,7 +42,7 @@ export function createEventsRouter({
       throw new EventsError(
         401,
         'INVALID_IDENTITY',
-        'The selected development identity is not available.'
+        'The selected account is not available.'
       );
     }
     if (member.status !== 'active') {
@@ -94,7 +97,7 @@ export function createEventsRouter({
     asyncRoute(async (req, res) => {
       try {
         const member = await resolveMember(req, true);
-        const result = service.register(req.params.id, member.id, req.body?.role);
+        const result = await service.register(req.params.id, member.id, req.body?.role);
         return sendSuccess(res, result.registration, result.created ? 201 : 200);
       } catch (error) {
         return sendEventsError(res, error);
@@ -107,7 +110,7 @@ export function createEventsRouter({
     asyncRoute(async (req, res) => {
       try {
         const member = await resolveMember(req, true);
-        return sendSuccess(res, service.cancelRegistration(req.params.id, member.id));
+        return sendSuccess(res, await service.cancelRegistration(req.params.id, member.id));
       } catch (error) {
         return sendEventsError(res, error);
       }

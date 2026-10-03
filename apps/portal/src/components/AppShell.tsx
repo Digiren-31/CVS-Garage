@@ -14,7 +14,19 @@ import {
   shorthands,
   tokens
 } from '@fluentui/react-components';
-import { ChevronDown, ChevronUp, FlaskConical, Menu, Monitor, Moon, Sun, X } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Cloud,
+  FlaskConical,
+  LogIn,
+  LogOut,
+  Menu,
+  Monitor,
+  Moon,
+  Sun,
+  X
+} from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import type { Member } from '../../../../packages/contracts/src';
@@ -318,11 +330,15 @@ const useStyles = makeStyles({
 interface AppShellProps {
   members: Member[];
   currentUserId: string;
+  authenticatedMember?: Member | null;
+  authMode?: 'demo' | 'supabase' | 'misconfigured';
   identityError: string | null;
   identityLoading?: boolean;
   themeMode: ThemeMode;
   onThemeChange: (mode: ThemeMode) => void;
   onIdentityChange: (userId: string) => void;
+  onSignIn?: () => void;
+  onSignOut?: () => void;
 }
 
 export interface WorkspaceContext {
@@ -330,6 +346,7 @@ export interface WorkspaceContext {
   members: Member[];
   identityLoading: boolean;
   identityError: string | null;
+  authMode: 'demo' | 'supabase' | 'misconfigured';
 }
 
 type NavigationStyle = CSSProperties & {
@@ -350,11 +367,15 @@ function readCollapsedPreference() {
 export function AppShell({
   members,
   currentUserId,
+  authenticatedMember = null,
+  authMode = 'demo',
   identityError,
   identityLoading = false,
   themeMode,
   onThemeChange,
-  onIdentityChange
+  onIdentityChange,
+  onSignIn = () => undefined,
+  onSignOut = () => undefined
 }: AppShellProps) {
   const styles = useStyles();
   const location = useLocation();
@@ -369,13 +390,21 @@ export function AppShell({
   const activeItem = workspaceNavigation.find((item) =>
     item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
   ) || workspaceNavigation[0];
-  const currentMember = members.find((member) => member.id === currentUserId);
+  const currentMember = authMode === 'demo'
+    ? members.find((member) => member.id === currentUserId)
+    : authenticatedMember || undefined;
   const toggleLabel = mobile ? 'Open navigation' : compact ? 'Expand navigation' : 'Collapse navigation';
   const ToggleIcon = mobile ? Menu : compact ? ChevronDown : ChevronUp;
   const ThemeIcon = themeMode === 'system' ? Monitor : themeMode === 'light' ? Sun : Moon;
   const nextTheme: Record<ThemeMode, ThemeMode> = { system: 'light', light: 'dark', dark: 'system' };
   const nextMode = nextTheme[themeMode];
-  const context: WorkspaceContext = { currentMember, members, identityLoading, identityError };
+  const context: WorkspaceContext = {
+    currentMember,
+    members,
+    identityLoading,
+    identityError,
+    authMode
+  };
 
   useEffect(() => {
     setMenuOpen(false);
@@ -531,18 +560,48 @@ export function AppShell({
                 <span className={styles.themeText}>{themeMode === 'system' ? 'System' : themeMode === 'light' ? 'Light' : 'Dark'}</span>
               </Button>
             </Tooltip>
+            {authMode !== 'demo' && !currentMember ? (
+              <Button
+                className={styles.identityButton}
+                appearance="primary"
+                icon={<LogIn size={17} />}
+                aria-label={authMode === 'misconfigured' ? 'Authentication unavailable' : 'Sign in with Google'}
+                onClick={onSignIn}
+                disabled={identityLoading || authMode === 'misconfigured'}
+              >
+                <span className={styles.identityText}>
+                  {authMode === 'misconfigured' ? 'Unavailable' : 'Sign in'}
+                </span>
+              </Button>
+            ) : (
             <Popover open={identityOpen} onOpenChange={(_, data) => setIdentityOpen(data.open)} positioning="below-end" trapFocus>
               <PopoverTrigger disableButtonEnhancement>
-                <Button className={styles.identityButton} appearance="subtle" aria-label={currentMember ? `Demo identity: ${currentMember.name}` : 'Demo identity'}>
+                <Button
+                  className={styles.identityButton}
+                  appearance="subtle"
+                  aria-label={
+                    authMode === 'demo'
+                      ? currentMember
+                        ? `Demo identity: ${currentMember.name}`
+                        : 'Demo identity'
+                      : currentMember
+                        ? `Account: ${currentMember.name}`
+                        : 'Account'
+                  }
+                >
                   <Avatar name={currentMember?.name} size={28} color="brand" aria-hidden="true" />
-                  <Text size={200} className={styles.identityText}>Demo</Text>
+                  <Text size={200} className={styles.identityText}>
+                    {authMode === 'demo' ? 'Demo' : currentMember?.name || 'Account'}
+                  </Text>
                 </Button>
               </PopoverTrigger>
-              <PopoverSurface className={styles.identityPanel} role="dialog" aria-label="Demo identity">
+              <PopoverSurface className={styles.identityPanel} role="dialog" aria-label={authMode === 'demo' ? 'Demo identity' : 'Account'}>
                 <div className={styles.identityPanelHeader}>
-                  <h2 className={styles.identityPanelTitle}>Demo identity</h2>
-                  <Button appearance="subtle" icon={<X size={18} />} aria-label="Close demo identity" onClick={() => setIdentityOpen(false)} />
+                  <h2 className={styles.identityPanelTitle}>{authMode === 'demo' ? 'Demo identity' : 'Account'}</h2>
+                  <Button appearance="subtle" icon={<X size={18} />} aria-label={authMode === 'demo' ? 'Close demo identity' : 'Close account'} onClick={() => setIdentityOpen(false)} />
                 </div>
+                {authMode === 'demo' ? (
+                  <>
                 <Field label="Development identity">
                   <Select
                     className={styles.select}
@@ -562,8 +621,18 @@ export function AppShell({
                   </Select>
                 </Field>
                 <Text size={200} className={styles.muted}>Synthetic identities for local role testing. This is not a production account.</Text>
+                  </>
+                ) : currentMember ? (
+                  <>
+                    <Text weight="semibold">{currentMember.name}</Text>
+                    <Text size={200}>{currentMember.email}</Text>
+                    <Text size={200}>Status: {currentMember.status}</Text>
+                    <Button icon={<LogOut size={17} />} onClick={onSignOut}>Sign out</Button>
+                  </>
+                ) : null}
               </PopoverSurface>
             </Popover>
+            )}
           </div>
           {identityError ? <Text role="alert" className={styles.error}>{identityError}</Text> : null}
         </header>
@@ -572,7 +641,14 @@ export function AppShell({
         </main>
         <footer className={styles.footer}>
           <Text size={200}>Your campus, connected.</Text>
-          <span className={styles.demoLabel}><FlaskConical size={13} aria-hidden="true" /><Text size={200}>Demo workspace · Synthetic data</Text></span>
+          <span className={styles.demoLabel}>
+            {authMode === 'demo'
+              ? <FlaskConical size={13} aria-hidden="true" />
+              : <Cloud size={13} aria-hidden="true" />}
+            <Text size={200}>
+              {authMode === 'demo' ? 'Demo workspace · Synthetic data' : 'Live pilot · Supabase'}
+            </Text>
+          </span>
         </footer>
       </div>
       {mobile ? (

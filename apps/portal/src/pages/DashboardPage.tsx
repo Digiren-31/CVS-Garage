@@ -12,7 +12,7 @@ import { useDashboardStyles } from './DashboardPage.styles';
 export function DashboardPage() {
   const styles = useDashboardStyles();
   const reducedMotion = useReducedMotion();
-  const { currentMember } = useOutletContext<WorkspaceContext>();
+  const { authMode, currentMember } = useOutletContext<WorkspaceContext>();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +35,7 @@ export function DashboardPage() {
   if (error || !summary) return <StatePanel state="error" message={error || 'No overview is available.'} onRetry={load} />;
 
   const firstName = currentMember?.name.trim().replace(/^Dr\.\s+/i, '').split(/\s+/)[0];
+  const publicVisitor = authMode !== 'demo' && !currentMember;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -49,8 +50,18 @@ export function DashboardPage() {
           <header className={styles.heading} data-pointer-glow>
             <div className={styles.headingCopy}>
               <span className={styles.eyebrow}><Sparkles size={15} aria-hidden="true" /> The campus is yours to shape</span>
-              <h1 className={styles.title}>{firstName ? `Welcome in, ${firstName}.` : 'Welcome in.'}</h1>
-              <Text className={styles.headingDescription}>Pick up a project, or see what is happening on campus.</Text>
+              <h1 className={styles.title}>
+                {publicVisitor
+                  ? 'Welcome to CVS Garage.'
+                  : firstName
+                    ? `Welcome in, ${firstName}.`
+                    : 'Welcome in.'}
+              </h1>
+              <Text className={styles.headingDescription}>
+                {publicVisitor
+                  ? 'Explore the campus innovation pulse, then sign in to enter service workspaces.'
+                  : 'Pick up a project, or see what is happening on campus.'}
+              </Text>
             </div>
             <div className={styles.heroArt} aria-hidden="true">
               <div className={styles.orbit}>
@@ -98,7 +109,13 @@ export function DashboardPage() {
                     <Link className={styles.textLink} to={`/projects/${encodeURIComponent(project.id)}`}>View project <ArrowRight size={16} aria-hidden="true" /></Link>
                   </Card>
                 ))}
-                {summary.featuredProjects.length === 0 ? <StatePanel state="empty" title="No featured projects yet" message="Your next project could start here." /> : null}
+                {summary.featuredProjects.length === 0 ? (
+                  <StatePanel
+                    state="empty"
+                    title={publicVisitor ? 'Project details require sign-in' : 'No featured projects yet'}
+                    message={publicVisitor ? 'Use the Google sign-in button to view approved project workspaces.' : 'Your next project could start here.'}
+                  />
+                ) : null}
               </div>
             </section>
 
@@ -126,7 +143,13 @@ export function DashboardPage() {
                     </Card>
                   );
                 })}
-                {summary.upcomingEvents.length === 0 ? <StatePanel state="empty" title="Nothing scheduled just yet" message="New campus events will appear here when they are published." /> : null}
+                {summary.upcomingEvents.length === 0 ? (
+                  <StatePanel
+                    state="empty"
+                    title={publicVisitor ? 'Event details require sign-in' : 'Nothing scheduled just yet'}
+                    message={publicVisitor ? 'Approved members can view schedules and registration capacity.' : 'New campus events will appear here when they are published.'}
+                  />
+                ) : null}
               </div>
             </section>
           </div>

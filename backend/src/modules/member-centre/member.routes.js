@@ -15,13 +15,13 @@ function validationError(res, message, details) {
 }
 
 async function getMutationActor(req, res) {
-  const actor = await memberService.verifyAuth(req);
+  const actor = req.member || await memberService.verifyAuth(req);
   if (!actor) {
     sendError(
       res,
       401,
       'UNAUTHORIZED',
-      'Choose a valid active development identity to continue.'
+      'Sign in with an active account to continue.'
     );
     return null;
   }
@@ -52,8 +52,12 @@ router.get(
       });
     }
 
+    const actor = req.member || await memberService.verifyAuth(req);
     const members = await memberCentreService.searchMembers(query);
-    return sendSuccess(res, members, 200, { total: members.length });
+    const visibleMembers = isAdministrator(actor)
+      ? members
+      : members.filter((member) => member.status === 'active');
+    return sendSuccess(res, visibleMembers, 200, { total: visibleMembers.length });
   })
 );
 
@@ -71,10 +75,21 @@ router.get(
         res,
         401,
         'UNAUTHORIZED',
-        'Choose a valid active development identity to continue.'
+        'Sign in with an active account to continue.'
       );
     }
     return sendSuccess(res, member);
+  })
+);
+
+router.patch(
+  '/me',
+  asyncRoute(async (req, res) => {
+    const actor = req.member || await memberService.verifyAuth(req);
+    if (!actor) {
+      return sendError(res, 401, 'UNAUTHORIZED', 'Sign in to update your profile.');
+    }
+    return sendSuccess(res, await memberCentreService.updateOwnProfile(req.body, actor));
   })
 );
 
@@ -113,6 +128,46 @@ router.patch(
 
     const member = await memberCentreService.setMentor(req.params.id, req.body.enabled, actor);
     return sendSuccess(res, member);
+  })
+);
+
+router.patch(
+  '/members/:id/role',
+  asyncRoute(async (req, res) => {
+    const actor = await getMutationActor(req, res);
+    if (!actor) {
+      return undefined;
+    }
+
+    const { role, enabled } = req.body || {};
+    if (!['Mentor', 'Community Moderator'].includes(role)) {
+      return validationError(res, 'Role must be Mentor or Community Moderator.', {
+        field: 'role',
+        allowedValues: ['Mentor', 'Community Moderator']
+      });
+    }
+    if (typeof enabled !== 'boolean') {
+      return validationError(res, 'Enabled must be a boolean.', { field: 'enabled' });
+    }
+
+    const member = await memberCentreService.setRole(
+      req.params.id,
+      role,
+      enabled,
+      actor
+    );
+    return sendSuccess(res, member);
+  })
+);
+
+router.delete(
+  '/members/:id/personal-data',
+  asyncRoute(async (req, res) => {
+    const actor = await getMutationActor(req, res);
+    if (!actor) {
+      return undefined;
+    }
+    return sendSuccess(res, await memberCentreService.anonymize(req.params.id, actor));
   })
 );
 

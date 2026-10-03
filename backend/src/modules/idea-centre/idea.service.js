@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { memberService } from '../../integrations/member.service.js';
 import { ideaStore } from './idea.store.js';
+import { validatePublicMediaUrl } from '../../lib/media-url.js';
 
 const DIFFICULTIES = new Set(['Easy', 'Medium', 'Hard']);
 
@@ -119,6 +120,7 @@ export class IdeaService {
       targetTeamSize: idea.targetTeamSize,
       memberIds: [...idea.memberIds],
       techStack: [...idea.techStack],
+      ...(idea.coverImageUrl ? { coverImageUrl: idea.coverImageUrl } : {}),
       savedByCurrentUser: Boolean(
         currentUserId &&
           this.state.saves.some(
@@ -194,6 +196,17 @@ export class IdeaService {
       );
     }
 
+    let coverImageUrl;
+    try {
+      coverImageUrl = validatePublicMediaUrl(input.coverImageUrl, 'coverImageUrl');
+    } catch (error) {
+      throw new IdeaCentreError(
+        400,
+        'VALIDATION_ERROR',
+        error instanceof Error ? error.message : 'Idea cover image is invalid.'
+      );
+    }
+
     return {
       title: requiredText(input.title, 'title', { min: 3, max: 120 }),
       tagline: requiredText(input.tagline, 'tagline', { min: 3, max: 180 }),
@@ -202,7 +215,8 @@ export class IdeaService {
       difficulty,
       targetTeamSize: input.targetTeamSize,
       techStack: stringList(input.techStack, 'techStack'),
-      seekingMentor: input.seekingMentor
+      seekingMentor: input.seekingMentor,
+      ...(coverImageUrl ? { coverImageUrl } : {})
     };
   }
 
@@ -220,11 +234,11 @@ export class IdeaService {
       createdAt: new Date().toISOString()
     };
     this.state.ideas.push(idea);
-    this.store.persist();
+    await this.store.persist({ actorId: owner.id });
     return this.enrichIdea(idea, owner.id);
   }
 
-  toggleSave(ideaId, memberId) {
+  async toggleSave(ideaId, memberId) {
     this.findIdea(ideaId);
     const index = this.state.saves.findIndex(
       (save) => save.ideaId === ideaId && save.memberId === memberId
@@ -241,7 +255,7 @@ export class IdeaService {
       });
       saved = true;
     }
-    this.store.persist();
+    await this.store.persist({ actorId: memberId });
     return { ideaId, saved };
   }
 
@@ -289,7 +303,7 @@ export class IdeaService {
       status: 'Pending',
       createdAt: new Date().toISOString()
     });
-    this.store.persist();
+    await this.store.persist({ actorId: member.id });
     return this.enrichIdea(idea, member.id);
   }
 
@@ -303,7 +317,7 @@ export class IdeaService {
       content,
       createdAt: new Date().toISOString()
     });
-    this.store.persist();
+    await this.store.persist({ actorId: member.id });
     return this.enrichIdea(idea, member.id);
   }
 
@@ -387,7 +401,7 @@ export class IdeaService {
       createdAt: payload.createdAt || new Date().toISOString()
     };
     this.state.ideas.push(idea);
-    this.store.persist();
+    await this.store.persist({ actorId: payload.authorMemberId || null });
     return this.toForumExport(idea, {
       success: true,
       alreadyExported: false,

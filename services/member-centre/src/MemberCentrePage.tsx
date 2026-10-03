@@ -2,8 +2,9 @@ import { Avatar, Badge, Button, Card, Input, Label, Link, Text, makeStyles, shor
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link as RouteLink, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../../packages/api-client/src';
-import type { Member, MemberStats } from '../../../packages/contracts/src';
+import type { ManagedMemberRole, Member, MemberStats } from '../../../packages/contracts/src';
 import { CardGrid, MetricCard, MetricGrid, ServicePage, StatePanel, StatusBadge, glassTokens } from '../../../packages/ui/src';
+import { ProfileEditor } from './ProfileEditor';
 
 const useStyles = makeStyles({
   searchForm: { display: 'flex', minWidth: 0, flex: '1 1 320px', maxWidth: '560px', alignItems: 'flex-end', gap: tokens.spacingHorizontalS, flexWrap: 'wrap' },
@@ -63,6 +64,7 @@ export function MemberCentrePage() {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
   const requestVersion = useRef(0);
   const loadKey = memberId ? `member:${memberId}` : `list:${submittedQuery}`;
   const backPath = `/member-centre${location.search}`;
@@ -97,6 +99,7 @@ export function MemberCentrePage() {
   useEffect(() => {
     setActionError(null);
     setActionMessage(null);
+    setEditingProfile(false);
     void load(submittedQuery);
     return () => { requestVersion.current += 1; };
   }, [load, submittedQuery]);
@@ -151,6 +154,29 @@ export function MemberCentrePage() {
     }
   }
 
+  async function changeRole(member: Member, role: ManagedMemberRole) {
+    const enabled = !member.roles.includes(role);
+    setPendingAction(`${member.id}:${role}`);
+    setActionError(null);
+    setActionMessage(null);
+    try {
+      replaceMember(await api.members.setRole(member.id, role, enabled));
+      setActionMessage(
+        enabled
+          ? `${member.name} now has ${role.toLocaleLowerCase()} access.`
+          : `${member.name} no longer has ${role.toLocaleLowerCase()} access.`
+      );
+    } catch (requestError) {
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : `${member.name}'s role could not be changed.`
+      );
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
   function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalized = query.trim();
@@ -182,7 +208,10 @@ export function MemberCentrePage() {
   }
 
   if (selectedMember) {
-    const protectedTarget = selectedMember.id === currentMember.id || isAdminTarget(selectedMember);
+    const protectedTarget =
+      selectedMember.id === currentMember.id ||
+      isAdminTarget(selectedMember) ||
+      selectedMember.isDemo;
     const statusAction = selectedMember.status === 'suspended' ? 'Restore' : selectedMember.status === 'pending' ? 'Activate' : 'Suspend';
     return (
       <ServicePage area="member-centre" title={selectedMember.name} description={selectedMember.department} actions={backLink}>
@@ -211,11 +240,36 @@ export function MemberCentrePage() {
             ) : null}
             {selectedMember.mentorExpertise.length ? <Text>Mentor expertise: {selectedMember.mentorExpertise.join(', ')}</Text> : null}
           </div>
+          {selectedMember.id === currentMember.id && !selectedMember.isDemo ? (
+            editingProfile ? (
+              <ProfileEditor
+                member={selectedMember}
+                onSaved={(updated) => {
+                  replaceMember(updated);
+                  setCurrentMember(updated);
+                  setEditingProfile(false);
+                  setActionMessage('Your profile has been updated.');
+                }}
+                onCancel={() => setEditingProfile(false)}
+              />
+            ) : (
+              <div className={styles.actions}>
+                <Button onClick={() => setEditingProfile(true)}>Edit profile</Button>
+              </div>
+            )
+          ) : null}
           {isAdmin(currentMember) && !protectedTarget ? (
             <div className={styles.actions} aria-label={`Actions for ${selectedMember.name}`}>
               <Button disabled={pendingAction !== null} aria-label={`${statusAction} ${selectedMember.name}`} onClick={() => void changeStatus(selectedMember)}>{statusAction}</Button>
               <Button disabled={pendingAction !== null} aria-label={`${selectedMember.isMentor ? 'Revoke mentor role from' : 'Grant mentor role to'} ${selectedMember.name}`} onClick={() => void changeMentor(selectedMember)}>
                 {selectedMember.isMentor ? 'Revoke mentor' : 'Make mentor'}
+              </Button>
+              <Button
+                disabled={pendingAction !== null}
+                aria-label={`${selectedMember.roles.includes('Community Moderator') ? 'Revoke moderator role from' : 'Grant moderator role to'} ${selectedMember.name}`}
+                onClick={() => void changeRole(selectedMember, 'Community Moderator')}
+              >
+                {selectedMember.roles.includes('Community Moderator') ? 'Revoke moderator' : 'Make moderator'}
               </Button>
             </div>
           ) : null}

@@ -65,7 +65,7 @@ export class EventsService {
     return event ? this.enrichEvent(event, currentMemberId) : null;
   }
 
-  register(eventId, memberId, requestedRole = 'Participant') {
+  async register(eventId, memberId, requestedRole = 'Participant') {
     const event = this.requireEvent(eventId);
     const role = typeof requestedRole === 'string' ? requestedRole.trim() : '';
     if (!REGISTRATION_ROLES.has(role)) {
@@ -117,7 +117,16 @@ export class EventsService {
       cancelledRegistration.status = 'Registered';
       cancelledRegistration.registeredAt = registeredAt;
       delete cancelledRegistration.cancelledAt;
-      this.store.persist();
+      await this.store.persist({
+        actorId: memberId,
+        realtimeTopic: 'events',
+        eventType: 'registration.changed',
+        recordId: eventId,
+        payload: {
+          eventId,
+          registrationCount: this.activeRegistrationsFor(eventId).length
+        }
+      });
       return { registration: clone(cancelledRegistration), created: true };
     }
 
@@ -130,11 +139,20 @@ export class EventsService {
       registeredAt
     };
     this.store.state.registrations.push(registration);
-    this.store.persist();
+    await this.store.persist({
+      actorId: memberId,
+      realtimeTopic: 'events',
+      eventType: 'registration.changed',
+      recordId: eventId,
+      payload: {
+        eventId,
+        registrationCount: this.activeRegistrationsFor(eventId).length
+      }
+    });
     return { registration: clone(registration), created: true };
   }
 
-  cancelRegistration(eventId, memberId) {
+  async cancelRegistration(eventId, memberId) {
     this.requireEvent(eventId);
     const registration = this.store.state.registrations.find(
       (candidate) =>
@@ -153,7 +171,16 @@ export class EventsService {
 
     registration.status = 'Cancelled';
     registration.cancelledAt = this.currentDate().toISOString();
-    this.store.persist();
+    await this.store.persist({
+      actorId: memberId,
+      realtimeTopic: 'events',
+      eventType: 'registration.changed',
+      recordId: eventId,
+      payload: {
+        eventId,
+        registrationCount: this.activeRegistrationsFor(eventId).length
+      }
+    });
     return { eventId, cancelled: true };
   }
 

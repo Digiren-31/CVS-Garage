@@ -34,13 +34,14 @@ function validatePathIdentifier(res, value, field) {
 
 async function getRequiredActor(req, res, action) {
   const userId = req.headers['x-user-id'];
-  const actor = await memberService.verifyAuth(req);
-  if (typeof userId !== 'string' || !userId.trim() || !actor) {
+  const hasBearer = typeof req.headers.authorization === 'string';
+  const actor = req.member || await memberService.verifyAuth(req);
+  if ((!req.member && !hasBearer && (typeof userId !== 'string' || !userId.trim())) || !actor) {
     sendError(
       res,
       401,
       'UNAUTHORIZED',
-      `Choose a valid active development identity to ${action}.`
+      `Sign in with a valid active account to ${action}.`
     );
     return null;
   }

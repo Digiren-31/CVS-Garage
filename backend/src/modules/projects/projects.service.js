@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { projectsStore } from './projects.store.js';
+import { validatePublicMediaUrl } from '../../lib/media-url.js';
 
 const PROJECT_STATUSES = new Set(['planning', 'active', 'on_hold', 'completed', 'showcase']);
 const MILESTONE_STATUSES = new Set(['planned', 'in_progress', 'completed']);
@@ -116,7 +117,21 @@ function validateProjectInput(input) {
     );
   }
 
-  return { ...normalized, slug };
+  try {
+    const coverImageUrl = validatePublicMediaUrl(input.coverImageUrl, 'coverImageUrl');
+    return {
+      ...normalized,
+      slug,
+      ...(coverImageUrl ? { coverImageUrl } : {})
+    };
+  } catch (error) {
+    throw new ProjectsError(
+      400,
+      'VALIDATION_ERROR',
+      error instanceof Error ? error.message : 'Project cover image is invalid.',
+      [{ field: 'coverImageUrl', message: 'Upload the cover through CVS Garage.' }]
+    );
+  }
 }
 
 export class ProjectsError extends Error {
@@ -184,7 +199,7 @@ export class ProjectsService {
       throw new ProjectsError(
         401,
         'UNAUTHORIZED',
-        'Choose a valid active development identity to propose a project.'
+        'Sign in with an active account to propose a project.'
       );
     }
 
@@ -215,12 +230,19 @@ export class ProjectsService {
       memberIds: [actor.id],
       membersCount: 1,
       tags: projectInput.tags,
+      ...(projectInput.coverImageUrl ? { coverImageUrl: projectInput.coverImageUrl } : {}),
       milestones: [],
       createdAt: new Date().toISOString()
     };
 
     this.store.state.projects.unshift(project);
-    this.store.persist();
+    await this.store.persist({
+      actorId: actor.id,
+      realtimeTopic: 'projects',
+      eventType: 'project.created',
+      recordId: project.id,
+      payload: { projectId: project.id }
+    });
     return clone(project);
   }
 
@@ -229,7 +251,7 @@ export class ProjectsService {
       throw new ProjectsError(
         401,
         'UNAUTHORIZED',
-        'Choose a valid active development identity to update a milestone.'
+        'Sign in with an active account to update a milestone.'
       );
     }
     if (!MILESTONE_STATUSES.has(status)) {
@@ -273,7 +295,13 @@ export class ProjectsService {
       project.milestones.length === 0
         ? 0
         : Math.round((completedCount / project.milestones.length) * 100);
-    this.store.persist();
+    await this.store.persist({
+      actorId: actor.id,
+      realtimeTopic: 'projects',
+      eventType: 'milestone.updated',
+      recordId: project.id,
+      payload: { projectId: project.id, milestoneId: milestone.id }
+    });
     return clone(project);
   }
 

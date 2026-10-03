@@ -51,8 +51,8 @@ export class ForumStore {
     }
   }
 
-  persist() {
-    this.persistence?.persist();
+  persist(context = {}) {
+    return this.persistence?.persist(context);
   }
 
   initSeeds() {

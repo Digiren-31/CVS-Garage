@@ -11,10 +11,99 @@ import { projectService } from '../../integrations/project.service.js';
 import { eventService } from '../../integrations/event.service.js';
 import { ideaCentreService } from '../../integrations/idea-centre.service.js';
 import { leaderboardService } from '../../integrations/leaderboard.service.js';
+import { mediaService } from '../media/media.service.js';
 
 export class ForumService {
   constructor(store = forumStore) {
     this.store = store;
+  }
+
+  queueContribution(event, operation = 'record') {
+    const existing = this.store.contributionEvents.find(
+      (candidate) => candidate.eventId === event.eventId
+    );
+    const pending = {
+      ...event,
+      operation,
+      syncStatus: 'pending',
+      updatedAt: new Date().toISOString()
+    };
+
+    if (existing) {
+      Object.assign(existing, pending);
+      delete existing.revokedAt;
+      return existing;
+    }
+
+    const queued = {
+      id: `evt-${randomUUID()}`,
+      ...pending,
+      createdAt: event.createdAt || new Date().toISOString()
+    };
+    this.store.contributionEvents.push(queued);
+    return queued;
+  }
+
+  async syncContributionOutbox() {
+    let changed = false;
+    const pending = this.store.contributionEvents.filter(
+      (event) => event.syncStatus === 'pending'
+    );
+
+    for (const event of pending) {
+      try {
+        if (event.operation === 'revoke') {
+          await leaderboardService.revokeContribution(event.eventId);
+          event.syncStatus = 'revoked';
+          event.revokedAt = new Date().toISOString();
+        } else {
+          await leaderboardService.recordContribution({
+            eventId: event.eventId,
+            memberId: event.memberId,
+            contributionType: event.contributionType,
+            forumPostId: event.forumPostId || null,
+            forumReplyId: event.forumReplyId || null,
+            value: event.value,
+            contextEventId: event.contextEventId || null,
+            timestamp: event.occurredAt || event.createdAt
+          });
+          event.syncStatus = 'synced';
+          delete event.revokedAt;
+        }
+        event.updatedAt = new Date().toISOString();
+        changed = true;
+      } catch (error) {
+        console.error(
+          `Forum contribution ${event.eventId} remains pending after leaderboard sync failed:`,
+          error
+        );
+      }
+    }
+
+    return changed;
+  }
+
+  async persistAndSync(context = {}) {
+    await this.store.persist?.(context);
+    if (!(await this.syncContributionOutbox())) {
+      return;
+    }
+
+    try {
+      await this.store.persist?.({ actorId: context.actorId || null });
+    } catch (error) {
+      console.error(
+        'Leaderboard sync completed, but Forum outbox status persistence failed:',
+        error
+      );
+    }
+  }
+
+  async reconcileContributions() {
+    if (!(await this.syncContributionOutbox())) {
+      return;
+    }
+    await this.store.persist?.();
   }
 
   moderatedCommunityIds(user) {
@@ -217,10 +306,6 @@ export class ForumService {
     const post = this.store.posts.find((p) => p.id === postId && !p.deletedAt);
     if (!post) return null;
 
-    // Increment view count
-    post.viewCount = (post.viewCount || 0) + 1;
-    this.store.persist?.();
-
     return this._enrichPostDetail(post, currentUserId);
   }
 
@@ -234,6 +319,7 @@ export class ForumService {
       tagNames = [],
       linkedProjectId,
       linkedEventId,
+      attachmentIds = [],
       structuredIdea
     } = payload;
 
@@ -252,6 +338,7 @@ export class ForumService {
     if (!Array.isArray(tagNames) || tagNames.length > 8) {
       throw new Error('Provide no more than 8 tags.');
     }
+    await mediaService.validateOwnedAttachments(attachmentIds, authorUser);
 
     const category = this.store.categories.find((item) => item.id === (categoryId || 'cat-1'));
     if (!category) {
@@ -322,6 +409,7 @@ export class ForumService {
       tagSlugs,
       isPinned: false,
       isLocked: false,
+      attachmentIds: [...attachmentIds],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -343,32 +431,20 @@ export class ForumService {
       if (comm) comm.postCount = (comm.postCount || 0) + 1;
     }
 
-    // Dispatch Leaderboard Contribution Event
     const eventId = `contrib-post-${postId}`;
-    await leaderboardService.recordContribution({
-      eventId,
-      memberId: authorUser.id,
-      contributionType: 'post',
-      forumPostId: postId,
-      value: 1,
-      contextEventId: linkedEventId || null,
-      timestamp: new Date().toISOString()
-    });
-
-    this.store.contributionEvents.push({
-      id: `evt-${randomUUID()}`,
+    this.queueContribution({
       eventId,
       memberId: authorUser.id,
       contributionType: 'post',
       forumPostId: postId,
       forumReplyId: null,
       value: 1,
-      syncStatus: 'synced',
-      createdAt: new Date().toISOString()
+      contextEventId: linkedEventId || null,
+      occurredAt: new Date().toISOString()
     });
 
-    this.store.persist?.();
-    return this.getPostById(postId, authorUser.id);
+    await this.persistAndSync({ actorId: authorUser.id });
+    return this._enrichPostDetail(newPost, authorUser.id);
   }
 
   async updatePost(postId, payload, user) {
@@ -383,7 +459,7 @@ export class ForumService {
     if (payload.status) post.status = payload.status;
     post.updatedAt = new Date().toISOString();
 
-    this.store.persist?.();
+    await this.store.persist?.({ actorId: user.id });
     return this.getPostById(postId, user.id);
   }
 
@@ -405,7 +481,7 @@ export class ForumService {
         community.postCount = Math.max(0, (community.postCount || 0) - 1);
       }
     }
-    this.store.persist?.();
+    await this.store.persist?.({ actorId: user.id });
     return { success: true, deletedPostId: postId };
   }
 
@@ -510,9 +586,8 @@ export class ForumService {
     post.replyCount = (post.replyCount || 0) + 1;
     post.updatedAt = new Date().toISOString();
 
-    // Dispatch Leaderboard Contribution Event
     const eventId = `contrib-reply-${replyId}`;
-    await leaderboardService.recordContribution({
+    this.queueContribution({
       eventId,
       memberId: authorUser.id,
       contributionType: 'reply',
@@ -520,7 +595,7 @@ export class ForumService {
       forumReplyId: replyId,
       value: 1,
       contextEventId: post.linkedEventId || null,
-      timestamp: new Date().toISOString()
+      occurredAt: new Date().toISOString()
     });
 
     // Create notification for post author if different
@@ -539,7 +614,13 @@ export class ForumService {
     }
 
     const author = await memberService.getMemberById(authorUser.id);
-    this.store.persist?.();
+    await this.persistAndSync({
+      actorId: authorUser.id,
+      realtimeTopic: 'forum',
+      eventType: 'reply.created',
+      recordId: replyId,
+      payload: { postId, replyId }
+    });
     return {
       ...newReply,
       author,
@@ -563,17 +644,18 @@ export class ForumService {
 
     const previousAcceptedReplyId = post.acceptedReplyId;
     if (previousAcceptedReplyId && previousAcceptedReplyId !== reply.id) {
-      await leaderboardService.revokeContribution(
-        this.acceptedContributionEventId(previousAcceptedReplyId)
-      );
       const previousEvent = this.store.contributionEvents.find(
         (event) =>
           event.contributionType === 'accepted_answer' &&
           event.forumReplyId === previousAcceptedReplyId
       );
       if (previousEvent) {
-        previousEvent.syncStatus = 'revoked';
-        previousEvent.revokedAt = new Date().toISOString();
+        this.queueContribution(previousEvent, 'revoke');
+      } else {
+        this.queueContribution(
+          { eventId: this.acceptedContributionEventId(previousAcceptedReplyId) },
+          'revoke'
+        );
       }
     }
 
@@ -590,9 +672,8 @@ export class ForumService {
     post.status = 'solved';
     post.updatedAt = new Date().toISOString();
 
-    // Trigger Leaderboard contribution for the accepted answer author
     const eventId = this.acceptedContributionEventId(reply.id);
-    await leaderboardService.recordContribution({
+    this.queueContribution({
       eventId,
       memberId: reply.authorId,
       contributionType: 'accepted_answer',
@@ -600,27 +681,8 @@ export class ForumService {
       forumReplyId: reply.id,
       value: 1,
       contextEventId: post.linkedEventId || null,
-      timestamp: new Date().toISOString()
+      occurredAt: new Date().toISOString()
     });
-    const contributionEvent = this.store.contributionEvents.find(
-      (event) => event.eventId === eventId
-    );
-    if (contributionEvent) {
-      contributionEvent.syncStatus = 'synced';
-      delete contributionEvent.revokedAt;
-    } else {
-      this.store.contributionEvents.push({
-        id: `evt-${randomUUID()}`,
-        eventId,
-        memberId: reply.authorId,
-        contributionType: 'accepted_answer',
-        forumPostId: postId,
-        forumReplyId: reply.id,
-        value: 1,
-        syncStatus: 'synced',
-        createdAt: new Date().toISOString()
-      });
-    }
 
     // Send notification to the helpful answer author
     if (reply.authorId !== user.id) {
@@ -637,7 +699,13 @@ export class ForumService {
       });
     }
 
-    this.store.persist?.();
+    await this.persistAndSync({
+      actorId: user.id,
+      realtimeTopic: 'forum',
+      eventType: 'reply.accepted',
+      recordId: reply.id,
+      payload: { postId, replyId: reply.id }
+    });
     return {
       success: true,
       postId,
@@ -707,9 +775,8 @@ export class ForumService {
       target.upvotesCount = (target.upvotesCount || 0) + 1;
       if (previousValue === -1) target.downvotesCount = Math.max(0, (target.downvotesCount || 0) - 1);
 
-      // Leaderboard upvote received reward
       const eventId = `contrib-upvote-${targetType}-${targetId}-${user.id}`;
-      await leaderboardService.recordContribution({
+      this.queueContribution({
         eventId,
         memberId: target.authorId,
         contributionType: 'upvote_received',
@@ -717,7 +784,7 @@ export class ForumService {
         forumReplyId: targetType === 'reply' ? target.id : null,
         value: 1,
         contextEventId: targetPost.linkedEventId || null,
-        timestamp: new Date().toISOString()
+        occurredAt: new Date().toISOString()
       });
     } else if (value === -1 && previousValue !== -1) {
       target.downvotesCount = (target.downvotesCount || 0) + 1;
@@ -727,12 +794,13 @@ export class ForumService {
       if (previousValue === -1) target.downvotesCount = Math.max(0, (target.downvotesCount || 0) - 1);
     }
     if (previousValue === 1 && value !== 1) {
-      await leaderboardService.revokeContribution(
-        `contrib-upvote-${targetType}-${targetId}-${user.id}`
+      this.queueContribution(
+        { eventId: `contrib-upvote-${targetType}-${targetId}-${user.id}` },
+        'revoke'
       );
     }
 
-    this.store.persist?.();
+    await this.persistAndSync({ actorId: user.id });
     return {
       success: true,
       targetType,
@@ -769,7 +837,7 @@ export class ForumService {
       isBookmarked = true;
     }
 
-    this.store.persist?.();
+    await this.store.persist?.({ actorId: user.id });
     return { success: true, postId, isBookmarked };
   }
 
@@ -853,7 +921,7 @@ export class ForumService {
       isMember = true;
     }
 
-    this.store.persist?.();
+    await this.store.persist?.({ actorId: user.id });
     return { success: true, communityId, isMember, memberCount: comm.memberCount };
   }
 
@@ -931,7 +999,7 @@ export class ForumService {
       });
     }
 
-    this.store.persist?.();
+    await this.store.persist?.({ actorId: user.id });
     return result;
   }
 
@@ -981,7 +1049,7 @@ export class ForumService {
     };
 
     this.store.reports.push(report);
-    this.store.persist?.();
+    await this.store.persist?.({ actorId: reporterUser.id });
     return { success: true, reportId: report.id };
   }
 
@@ -1045,7 +1113,7 @@ export class ForumService {
       createdAt: new Date().toISOString()
     });
 
-    this.store.persist?.();
+    await this.store.persist?.({ actorId: moderatorUser.id });
     return { success: true, report };
   }
 
@@ -1077,7 +1145,7 @@ export class ForumService {
       isFollowing = true;
     }
 
-    this.store.persist?.();
+    await this.store.persist?.({ actorId: user.id });
     return { success: true, targetType, targetId, isFollowing };
   }
 
@@ -1142,6 +1210,23 @@ export class ForumService {
 
   async _enrichPostDetail(post, currentUserId) {
     const summary = await this._enrichPostSummary(post, currentUserId);
+    const currentUser = currentUserId
+      ? await memberService.getMemberById(currentUserId)
+      : null;
+    const attachments = currentUser
+      ? await Promise.all(
+          (post.attachmentIds || []).map(async (assetId) => {
+            const asset = await mediaService.getUrl(assetId, currentUser);
+            return {
+              id: asset.id,
+              originalName: asset.originalName,
+              mimeType: asset.mimeType,
+              sizeBytes: asset.sizeBytes,
+              url: asset.url
+            };
+          })
+        )
+      : [];
 
     // Get accepted reply if present
     let acceptedReply = null;
@@ -1155,7 +1240,8 @@ export class ForumService {
 
     return {
       ...summary,
-      acceptedReply
+      acceptedReply,
+      attachments
     };
   }
 }

@@ -37,9 +37,50 @@ export interface Member {
   bio: string;
   skills: string[];
   reputationScore: number;
+  isDemo?: boolean;
   forumPermissions?: {
     canAccessModeration: boolean;
     moderatedCommunityIds: string[];
+  };
+}
+
+export type ManagedMemberRole = 'Mentor' | 'Community Moderator';
+
+export interface UpdateMemberProfileInput {
+  name: string;
+  department: string;
+  batch?: string;
+  bio: string;
+  skills: string[];
+  avatarUrl?: string;
+}
+
+export type MediaCategory =
+  | 'avatar'
+  | 'project-cover'
+  | 'event-cover'
+  | 'idea-cover'
+  | 'forum-attachment';
+
+export interface MediaAsset {
+  id: string;
+  ownerMemberId: string;
+  bucketId: 'public-media' | 'private-attachments';
+  objectPath: string;
+  category: MediaCategory;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  visibility: 'public' | 'authenticated';
+  uploadedAt?: string | null;
+  url?: string;
+}
+
+export interface MediaUploadIntent {
+  asset: MediaAsset;
+  upload: {
+    path: string;
+    token: string;
   };
 }
 
@@ -71,6 +112,7 @@ export interface Project {
   memberIds: string[];
   tags: string[];
   repositoryUrl?: string;
+  coverImageUrl?: string;
   milestones: ProjectMilestone[];
   createdAt: string;
 }
@@ -81,6 +123,7 @@ export interface CreateProjectInput {
   description: string;
   category: string;
   tags: string[];
+  coverImageUrl?: string;
 }
 
 export interface EventScheduleItem {
@@ -114,6 +157,7 @@ export interface Event {
   venue: string;
   organizerId: string;
   organizerName: string;
+  coverImageUrl?: string;
   capacity: number;
   registrationCount: number;
   tags: string[];
@@ -147,6 +191,7 @@ export interface Idea {
   targetTeamSize: number;
   memberIds: string[];
   techStack: string[];
+  coverImageUrl?: string;
   savedByCurrentUser: boolean;
   joinRequestStatus: 'Pending' | 'Accepted' | 'Declined' | null;
   comments: IdeaComment[];
@@ -162,6 +207,7 @@ export interface CreateIdeaInput {
   targetTeamSize: number;
   techStack: string[];
   seekingMentor: boolean;
+  coverImageUrl?: string;
 }
 
 export interface Achievement {

@@ -961,6 +961,7 @@ export function ForumPage() {
     useState<CreatePostForm>(emptyCreateForm);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createAttachments, setCreateAttachments] = useState<File[]>([]);
 
   const [exportPost, setExportPost] = useState<ForumPost | null>(null);
   const [exportProblem, setExportProblem] = useState('');
@@ -1330,6 +1331,7 @@ export function ForumPage() {
   function startPost(prefill?: Partial<CreatePostForm>) {
     setCreateForm({ ...emptyCreateForm, ...prefill });
     setCreateError(null);
+    setCreateAttachments([]);
     setCreateOpen(true);
   }
 
@@ -1393,7 +1395,20 @@ export function ForumPage() {
     }
 
     setCreateSubmitting(true);
+    let uploadedAttachmentIds: string[] = [];
     try {
+      const uploadResults = await Promise.allSettled(
+        createAttachments.map((file) => api.media.upload(file, 'forum-attachment'))
+      );
+      uploadedAttachmentIds = uploadResults.flatMap((result) =>
+        result.status === 'fulfilled' ? [result.value.id] : []
+      );
+      const uploadFailure = uploadResults.find(
+        (result): result is PromiseRejectedResult => result.status === 'rejected'
+      );
+      if (uploadFailure) {
+        throw uploadFailure.reason;
+      }
       const created = await api.forum.createPost({
         postType: createForm.postType,
         title,
@@ -1402,10 +1417,12 @@ export function ForumPage() {
         tagNames,
         linkedProjectId: createForm.linkedProjectId || undefined,
         linkedEventId: createForm.linkedEventId || undefined,
+        attachmentIds: uploadedAttachmentIds,
         structuredIdea
       });
       setCreateOpen(false);
       setCreateForm(emptyCreateForm);
+      setCreateAttachments([]);
       await loadFeed();
       setFeedback({
         kind: 'success',
@@ -1413,6 +1430,13 @@ export function ForumPage() {
       });
       openPost(created.id);
     } catch (error) {
+      const cleanup = await Promise.allSettled(
+        uploadedAttachmentIds.map((assetId) => api.media.remove(assetId))
+      );
+      const cleanupFailures = cleanup.filter((result) => result.status === 'rejected');
+      if (cleanupFailures.length > 0) {
+        console.error('One or more failed Forum uploads could not be cleaned up.', cleanupFailures);
+      }
       setCreateError(
         getErrorMessage(error, 'The discussion could not be published.')
       );
@@ -1824,6 +1848,21 @@ export function ForumPage() {
           ) : null}
 
           <Text className={styles.body}>{post.content}</Text>
+
+          {post.attachments?.length ? (
+            <div className={styles.linkedItems} aria-label="Discussion attachments">
+              {post.attachments.map((attachment) => (
+                <a
+                  key={attachment.id}
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {attachment.originalName}
+                </a>
+              ))}
+            </div>
+          ) : null}
 
           {post.tags.length ? (
             <div className={styles.tags} aria-label="Discussion tags">
@@ -2485,6 +2524,20 @@ export function ForumPage() {
                         updateCreateField('tags', data.value)
                       }
                       placeholder="React, robotics, accessibility"
+                    />
+                  </Field>
+                  <Field
+                    label="Attachments"
+                    hint="Up to five images, PDF, Office, or text files. Images: 5 MB; other files: 25 MB."
+                    className={styles.fullSpan}
+                  >
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp,image/gif,image/avif,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.txt,.csv,.md,application/json"
+                      onChange={(event) =>
+                        setCreateAttachments(Array.from(event.target.files || []).slice(0, 5))
+                      }
                     />
                   </Field>
                 </div>

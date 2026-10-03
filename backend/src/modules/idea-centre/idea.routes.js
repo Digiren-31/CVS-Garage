@@ -42,7 +42,7 @@ async function requireMember(req, res) {
       res,
       401,
       'UNAUTHORIZED',
-      'Choose an active development identity to use the Idea Centre.'
+      'Sign in with an active account to use the Idea Centre.'
     );
     return null;
   }
@@ -87,7 +87,7 @@ router.post(
     if (!member) {
       return undefined;
     }
-    return sendSuccess(res, ideaService.toggleSave(req.params.id, member.id));
+    return sendSuccess(res, await ideaService.toggleSave(req.params.id, member.id));
   })
 );
 

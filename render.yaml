@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: cvs-garage-pilot
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: SUPABASE_ENABLED
+        value: "true"
+      - key: SUPABASE_URL
+        value: https://ycnghdqpzzhrrifcylnw.supabase.co
+      - key: VITE_SUPABASE_URL
+        value: https://ycnghdqpzzhrrifcylnw.supabase.co
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false

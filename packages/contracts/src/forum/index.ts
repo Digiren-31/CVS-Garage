@@ -166,6 +166,14 @@ export interface ForumPost {
   ideaExport?: IdeaCentreExportRef | null;
   isPinned: boolean;
   isLocked: boolean;
+  attachmentIds?: string[];
+  attachments?: Array<{
+    id: string;
+    originalName: string;
+    mimeType: string;
+    sizeBytes: number;
+    url: string;
+  }>;
   viewerPermissions?: {
     canEdit: boolean;
     canDelete: boolean;
@@ -189,6 +197,7 @@ export interface CreatePostPayload {
   tagNames: string[];
   linkedProjectId?: string | null;
   linkedEventId?: string | null;
+  attachmentIds?: string[];
   structuredIdea?: {
     problemStatement: string;
     proposedSolution: string;

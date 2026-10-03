@@ -8,12 +8,20 @@ import cors from 'cors';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { sendSuccess } from './lib/http.js';
+import { getSupabaseConfig, getTrustProxy, isSupabaseEnabled } from './lib/config.js';
+import { initializePersistentStores } from './lib/persistent-store.js';
+import { requireActiveMember } from './lib/auth-middleware.js';
+import { apiRateLimit, mutationRateLimit, serializeMutations } from './lib/rate-limits.js';
+import authRouter from './modules/auth/auth.routes.js';
 import dashboardRouter from './modules/dashboard/dashboard.routes.js';
 import eventsRouter from './modules/events/events.routes.js';
 import forumRouter from './modules/forum/forum.routes.js';
+import { forumService } from './modules/forum/forum.service.js';
 import ideaCentreRouter from './modules/idea-centre/idea.routes.js';
 import leaderboardsRouter from './modules/leaderboards/leaderboard.routes.js';
 import memberCentreRouter from './modules/member-centre/member.routes.js';
+import mediaRouter from './modules/media/media.routes.js';
+import { mediaService } from './modules/media/media.service.js';
 import projectsRouter from './modules/projects/projects.routes.js';
 
 const app = express();
@@ -21,14 +29,30 @@ const PORT = process.env.PORT || 4000;
 const portalDist = fileURLToPath(new URL('../../apps/portal/dist', import.meta.url));
 
 app.disable('x-powered-by');
+app.set('trust proxy', getTrustProxy());
 
-// Enable CORS for services and local development
-app.use(cors());
+getSupabaseConfig();
+await initializePersistentStores();
+await forumService.reconcileContributions();
+if (isSupabaseEnabled()) {
+  await mediaService.cleanupExpiredUploads();
+}
+
+if (process.env.NODE_ENV !== 'production') {
+  app.use(cors());
+}
 app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'same-origin');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
   next();
 });
 
@@ -48,7 +72,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     service: 'cvs-garage-central-backend',
-    modules: ['dashboard', 'projects', 'events', 'member-centre', 'leaderboards', 'idea-centre', 'forum'],
+    persistence: isSupabaseEnabled() ? 'supabase' : 'local-json',
+    modules: ['dashboard', 'projects', 'events', 'member-centre', 'leaderboards', 'idea-centre', 'forum', 'media'],
     timestamp: new Date().toISOString()
   });
 });
@@ -68,13 +93,16 @@ app.get('/api/v1', (req, res) => {
   });
 });
 
+app.use('/api/v1', apiRateLimit, mutationRateLimit, serializeMutations);
 app.use('/api/v1/dashboard', dashboardRouter);
-app.use('/api/v1/projects', projectsRouter);
-app.use('/api/v1/events', eventsRouter);
-app.use('/api/v1/member-centre', memberCentreRouter);
-app.use('/api/v1/leaderboards', leaderboardsRouter);
-app.use('/api/v1/idea-centre', ideaCentreRouter);
-app.use('/api/v1/forum', forumRouter);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/projects', requireActiveMember, projectsRouter);
+app.use('/api/v1/events', requireActiveMember, eventsRouter);
+app.use('/api/v1/member-centre', requireActiveMember, memberCentreRouter);
+app.use('/api/v1/media', requireActiveMember, mediaRouter);
+app.use('/api/v1/leaderboards', requireActiveMember, leaderboardsRouter);
+app.use('/api/v1/idea-centre', requireActiveMember, ideaCentreRouter);
+app.use('/api/v1/forum', requireActiveMember, forumRouter);
 
 app.use('/api', (req, res) => {
   res.status(404).json({

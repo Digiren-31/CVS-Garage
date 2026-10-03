@@ -28,7 +28,7 @@ const contribution = ({
   recordedAt: occurredAt
 });
 
-function createLeaderboardSeed() {
+export function createLeaderboardSeed() {
   return {
     contributionEvents: [
       contribution({

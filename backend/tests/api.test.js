@@ -15,7 +15,8 @@ test('central API composition', async (t) => {
       'member-centre',
       'leaderboards',
       'idea-centre',
-      'forum'
+      'forum',
+      'media'
     ]);
   });
 

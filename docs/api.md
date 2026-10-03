@@ -17,7 +17,7 @@ response uses this envelope:
 Errors set `success: false`, `data: null`, an explicit `error.code` and recovery
 message, and an appropriate HTTP status.
 
-## Development identity
+## Identity
 
 Local requests may include `x-user-id` with one of the seeded member IDs. The
 portal manages this header through `packages/api-client`. Unknown or suspended
@@ -25,6 +25,12 @@ identities cannot perform protected mutations.
 
 This header must be replaced by verified institutional identity before
 production; see [architecture.md](architecture.md).
+
+When Supabase is enabled, `x-user-id` is ignored. The browser sends
+`Authorization: Bearer <Supabase access token>`. New Google identities receive a
+pending member profile; every service route returns `ACCOUNT_PENDING` until an
+Admin activates it. The public dashboard remains available without a token and
+returns aggregate-only data.
 
 ## Routes
 
@@ -35,16 +41,29 @@ production; see [architecture.md](architecture.md).
 | `GET` | `/health` | Process and module health |
 | `GET` | `/api/v1` | Discover top-level API resources |
 | `GET` | `/api/v1/dashboard` | Cross-service portal summary |
+| `GET` | `/api/v1/auth/session` | Verified Supabase session profile, including pending status |
 
 ### Member Centre
 
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/v1/member-centre/me` | Current synthetic member |
+| `PATCH` | `/api/v1/member-centre/me` | Update current member profile fields |
 | `GET` | `/api/v1/member-centre/members` | Searchable public member directory |
 | `GET` | `/api/v1/member-centre/stats` | Aggregate member counts |
 | `PATCH` | `/api/v1/member-centre/members/:id/status` | Admin status change |
 | `PATCH` | `/api/v1/member-centre/members/:id/mentor` | Admin mentor grant/revoke |
+| `PATCH` | `/api/v1/member-centre/members/:id/role` | Admin Mentor/Moderator grant or revoke |
+| `DELETE` | `/api/v1/member-centre/members/:id/personal-data` | Admin anonymization and Auth removal |
+
+### Media
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/v1/media/upload-intents` | Validate metadata and create a signed Storage upload token |
+| `POST` | `/api/v1/media/:id/complete` | Verify the uploaded object and publish metadata |
+| `GET` | `/api/v1/media/:id/url` | Resolve a public or short-lived authenticated URL |
+| `DELETE` | `/api/v1/media/:id` | Delete an owned object and retire its metadata |
 
 ### Projects
 

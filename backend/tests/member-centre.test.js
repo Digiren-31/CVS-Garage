@@ -104,13 +104,19 @@ test('Member Centre API', async (t) => {
     assert.equal(updated.body.data.status, 'suspended');
     assert.equal(await memberService.verifyAuth({ headers: { 'x-user-id': 'mem-student-1' } }), null);
 
-    const members = await request(app).get('/api/v1/member-centre/members').expect(200);
+    const members = await request(app)
+      .get('/api/v1/member-centre/members')
+      .set('x-user-id', 'mem-admin-1')
+      .expect(200);
     assert.equal(
       members.body.data.find((member) => member.id === 'mem-student-1').status,
       'suspended'
     );
 
-    const stats = await request(app).get('/api/v1/member-centre/stats').expect(200);
+    const stats = await request(app)
+      .get('/api/v1/member-centre/stats')
+      .set('x-user-id', 'mem-admin-1')
+      .expect(200);
     assert.equal(stats.body.data.activeMembers, 5);
     assert.equal(stats.body.data.suspendedMembers, 1);
   });
@@ -135,6 +141,56 @@ test('Member Centre API', async (t) => {
     assert.equal(revoked.body.data.isMentor, false);
     assert.equal(revoked.body.data.role, 'Student');
     assert.deepEqual(revoked.body.data.roles, ['Student']);
+  });
+
+  await t.test('grants moderator access and lets members update only profile fields', async () => {
+    const moderator = await request(app)
+      .patch('/api/v1/member-centre/members/mem-student-2/role')
+      .set('x-user-id', 'mem-admin-1')
+      .send({ role: 'Community Moderator', enabled: true })
+      .expect(200);
+
+    assert.equal(moderator.body.data.roles.includes('Community Moderator'), true);
+    assert.equal(moderator.body.data.role, 'Community Moderator');
+
+    const profile = await request(app)
+      .patch('/api/v1/member-centre/me')
+      .set('x-user-id', 'mem-student-1')
+      .send({
+        name: 'Rahul Sharma',
+        department: 'Computer Science',
+        batch: 'Batch 2026',
+        bio: 'Building accessible campus tools.',
+        skills: ['React', 'Accessibility']
+      })
+      .expect(200);
+
+    assert.equal(profile.body.data.department, 'Computer Science');
+    assert.deepEqual(profile.body.data.skills, ['React', 'Accessibility']);
+    assert.deepEqual(profile.body.data.roles, ['Student']);
+  });
+
+  await t.test('rejects unsupported managed roles and read-only demo profile changes', async () => {
+    const role = await request(app)
+      .patch('/api/v1/member-centre/members/mem-student-2/role')
+      .set('x-user-id', 'mem-admin-1')
+      .send({ role: 'Admin', enabled: true })
+      .expect(400);
+    assert.equal(role.body.error.code, 'VALIDATION_ERROR');
+
+    memberStore.state.members[0].isDemo = true;
+    const profile = await request(app)
+      .patch('/api/v1/member-centre/me')
+      .set('x-user-id', 'mem-student-1')
+      .send({
+        name: 'Changed Name',
+        department: 'Computer Science',
+        batch: '',
+        bio: '',
+        skills: []
+      })
+      .expect(409);
+    assert.equal(profile.body.error.code, 'DEMO_PROFILE_READ_ONLY');
   });
 
   await t.test('protects administrators from self and role mutations', async () => {
