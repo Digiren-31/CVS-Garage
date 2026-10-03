@@ -158,6 +158,34 @@ const useStyles = makeStyles({
     overflowY: 'auto',
     ...shorthands.padding(tokens.spacingVerticalM, tokens.spacingHorizontalL)
   },
+  landingNav: {
+    display: 'flex',
+    alignItems: 'center',
+    justifySelf: 'center',
+    gap: tokens.spacingHorizontalL,
+    '@media (max-width: 1200px)': {
+      gridColumn: '1 / -1',
+      gridRow: 2
+    },
+    '@media (max-width: 900px)': {
+      display: 'none'
+    }
+  },
+  landingNavLink: {
+    minHeight: '36px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    color: tokens.colorNeutralForeground2,
+    textDecorationLine: 'none',
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: tokens.fontWeightSemibold,
+    borderRadius: tokens.borderRadiusCircular,
+    ...shorthands.padding(0, tokens.spacingHorizontalS),
+    ':hover': {
+      color: tokens.colorNeutralForeground1,
+      backgroundColor: glassTokens.mutedSurface
+    }
+  },
   navLink: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -256,6 +284,23 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground2,
     '@media (max-width: 600px)': { display: 'none' }
   },
+  signInButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXS,
+    minHeight: '36px',
+    borderRadius: tokens.borderRadiusCircular,
+    ...shorthands.padding(tokens.spacingVerticalXXS, tokens.spacingHorizontalM),
+    '@media (max-width: 900px)': {
+      minHeight: '44px',
+      minWidth: '44px',
+      paddingInline: tokens.spacingHorizontalS
+    }
+  },
+  signInText: {
+    color: tokens.colorNeutralForegroundOnBrand,
+    '@media (max-width: 600px)': { display: 'none' }
+  },
   identityPanel: {
     width: '320px',
     maxWidth: 'calc(100vw - 32px)',
@@ -293,6 +338,9 @@ const useStyles = makeStyles({
     '@media (max-width: 600px)': {
       ...shorthands.padding(tokens.spacingVerticalL, tokens.spacingHorizontalM)
     }
+  },
+  contentLanding: {
+    padding: 0
   },
   footer: {
     position: 'relative',
@@ -386,13 +434,18 @@ export function AppShell({
   const frameRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const previousPath = useRef(location.pathname);
-  const compact = collapsed && !mobile;
-  const activeItem = workspaceNavigation.find((item) =>
-    item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
-  ) || workspaceNavigation[0];
   const currentMember = authMode === 'demo'
     ? members.find((member) => member.id === currentUserId)
     : authenticatedMember || undefined;
+  const workspaceAvailable =
+    authMode === 'demo' || currentMember?.status === 'active';
+  const visitorNavigation =
+    authMode === 'supabase' && !currentMember;
+  const visitorLanding = visitorNavigation && location.pathname === '/';
+  const compact = workspaceAvailable && collapsed && !mobile;
+  const activeItem = workspaceNavigation.find((item) =>
+    item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
+  ) || workspaceNavigation[0];
   const toggleLabel = mobile ? 'Open navigation' : compact ? 'Expand navigation' : 'Collapse navigation';
   const ToggleIcon = mobile ? Menu : compact ? ChevronDown : ChevronUp;
   const ThemeIcon = themeMode === 'system' ? Monitor : themeMode === 'light' ? Sun : Moon;
@@ -534,21 +587,40 @@ export function AppShell({
     </Tooltip>
   );
 
+  const landingNavigation = (
+    <nav className={styles.landingNav} aria-label="Landing navigation">
+      <a className={styles.landingNavLink} href="/#workspaces">Workspaces</a>
+      <a className={styles.landingNavLink} href="/#campus-stories">Why CVS Garage</a>
+      <a className={styles.landingNavLink} href="/#how-it-works">How it works</a>
+    </nav>
+  );
+
   return (
-    <div className={styles.root} data-navigation={compact ? 'collapsed' : 'expanded'}>
+    <div
+      className={styles.root}
+      data-navigation={
+        workspaceAvailable ? (compact ? 'collapsed' : 'expanded') : 'visitor'
+      }
+    >
       <a className={styles.skipLink} href="#main-content">Skip to main content</a>
       <div ref={frameRef} className={styles.frame} data-workspace-frame>
         <header className={styles.header}>
           <div className={styles.brandGroup}>
-            {mobile ? navigationToggle : null}
+            {mobile && workspaceAvailable ? navigationToggle : null}
             <Link to="/" className={styles.brand} aria-label="CVS Garage overview">
               <img className={styles.brandMark} src="/garage-mark.svg" alt="" width="42" height="42" />
               <span className={styles.brandName}>CVS Garage<span className={styles.brandCaption}>Campus innovation</span></span>
             </Link>
           </div>
-          {!mobile ? navigation : null}
+          {!mobile
+            ? workspaceAvailable
+              ? navigation
+              : visitorNavigation
+                ? landingNavigation
+                : null
+            : null}
           <div className={styles.headerControls}>
-            {!mobile ? navigationToggle : null}
+            {!mobile && workspaceAvailable ? navigationToggle : null}
             <Tooltip content={`Theme: ${themeMode}. Switch to ${nextMode}.`} relationship="description">
               <Button
                 className={styles.themeButton}
@@ -562,14 +634,14 @@ export function AppShell({
             </Tooltip>
             {authMode !== 'demo' && !currentMember ? (
               <Button
-                className={styles.identityButton}
+                className={styles.signInButton}
                 appearance="primary"
                 icon={<LogIn size={17} />}
                 aria-label={authMode === 'misconfigured' ? 'Authentication unavailable' : 'Sign in with Google'}
                 onClick={onSignIn}
                 disabled={identityLoading || authMode === 'misconfigured'}
               >
-                <span className={styles.identityText}>
+                <span className={styles.signInText}>
                   {authMode === 'misconfigured' ? 'Unavailable' : 'Sign in'}
                 </span>
               </Button>
@@ -634,9 +706,15 @@ export function AppShell({
             </Popover>
             )}
           </div>
-          {identityError ? <Text role="alert" className={styles.error}>{identityError}</Text> : null}
+          {identityError && !visitorLanding ? (
+            <Text role="alert" className={styles.error}>{identityError}</Text>
+          ) : null}
         </header>
-        <main className={styles.content} id="main-content" tabIndex={-1}>
+        <main
+          className={mergeClasses(styles.content, visitorLanding && styles.contentLanding)}
+          id="main-content"
+          tabIndex={-1}
+        >
           <Outlet context={context} />
         </main>
         <footer className={styles.footer}>
@@ -656,7 +734,7 @@ export function AppShell({
           </span>
         </footer>
       </div>
-      {mobile ? (
+      {mobile && workspaceAvailable ? (
         <OverlayDrawer open={menuOpen} onOpenChange={(_, data) => { if (!data.open) closeNavigation(); }} position="start" aria-label="Workspace navigation" className={styles.drawer}>
           <div className={styles.drawerHeader}>
             <Text size={500}>Your workspace</Text>

@@ -4,9 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CvsThemeProvider } from '../../../../packages/ui/src';
 import { AppShell } from './AppShell';
 
-function renderShell() {
+function renderShell({
+  authMode = 'demo'
+}: {
+  authMode?: 'demo' | 'supabase' | 'misconfigured';
+} = {}) {
   const onThemeChange = vi.fn();
   const onIdentityChange = vi.fn();
+  const onSignIn = vi.fn();
   const result = render(
     <CvsThemeProvider area="portal" mode="light">
       <MemoryRouter>
@@ -16,10 +21,12 @@ function renderShell() {
               <AppShell
                 members={[]}
                 currentUserId="demo"
+                authMode={authMode}
                 identityError={null}
                 themeMode="system"
                 onThemeChange={onThemeChange}
                 onIdentityChange={onIdentityChange}
+                onSignIn={onSignIn}
               />
             }
           >
@@ -30,7 +37,7 @@ function renderShell() {
       </MemoryRouter>
     </CvsThemeProvider>
   );
-  return { ...result, onThemeChange, onIdentityChange };
+  return { ...result, onThemeChange, onIdentityChange, onSignIn };
 }
 
 describe('workspace navigation', () => {
@@ -130,6 +137,16 @@ describe('workspace navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Demo identity' }));
     const panel = await screen.findByRole('dialog', { name: 'Demo identity' });
     expect(within(panel).getByRole('combobox', { name: 'Development identity' })).toBeDisabled();
+  });
+
+  it('uses product navigation instead of workspace tabs for signed-out visitors', () => {
+    const { onSignIn } = renderShell({ authMode: 'supabase' });
+    expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Collapse navigation' })).not.toBeInTheDocument();
+    const landingNavigation = screen.getByRole('navigation', { name: 'Landing navigation' });
+    expect(within(landingNavigation).getAllByRole('link')).toHaveLength(3);
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in with Google' }));
+    expect(onSignIn).toHaveBeenCalledTimes(1);
   });
 
   it('tracks fine-pointer position on the canvas and hovered surfaces', () => {
