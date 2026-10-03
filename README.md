@@ -5,6 +5,8 @@ Centre, Leaderboards, Idea Centre, and Forum & Discussions into one shared
 workspace. The repository now contains a runnable full-stack MVP with synthetic
 development data.
 
+**Live pilot:** [https://cvs-garage-pilot.onrender.com](https://cvs-garage-pilot.onrender.com)
+
 ## Technology baseline
 
 - **Portal:** React, TypeScript, Vite, React Router, Fluent UI React v9, and
@@ -58,7 +60,8 @@ npm start
 
 The backend serves the built portal and API from `http://localhost:4000`.
 
-For the hosted pilot, follow
+The hosted pilot runs on Render Singapore with Supabase Mumbai. For deployment,
+recovery, and operational checks, follow
 [docs/supabase-deployment.md](docs/supabase-deployment.md). Never paste
 Supabase secret keys, the database password, or OAuth credentials into source
 files or chat.

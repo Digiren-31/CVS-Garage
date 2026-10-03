@@ -5,6 +5,20 @@ hosted Supabase and Render pilot. It is intentionally ordered so schema,
 authorization, data import, application deployment, OAuth, and first-admin
 bootstrap can each be verified before the next boundary is opened.
 
+## Current deployment
+
+- **Portal:** <https://cvs-garage-pilot.onrender.com>
+- **Render service:** `cvs-garage-pilot`, Singapore, free pilot tier
+- **Supabase:** `cvs-garage-pilot`, Mumbai (`ap-south-1`)
+- **Authentication:** Google OAuth, external audience, basic
+  `openid`/email/profile scopes
+- **Data import:** five domain states and six read-only demo profiles verified
+- **Bootstrap:** one real Admin created and recorded in the audit log
+
+The live release has passed public-health, aggregate-dashboard,
+anonymous-protection, OAuth callback, Admin bootstrap, protected navigation,
+and signed upload/complete/delete smoke tests.
+
 ## Selected pilot architecture
 
 - **Application runtime:** one Render Node web service in Singapore. Express
