@@ -640,7 +640,12 @@ export function AppShell({
           <Outlet context={context} />
         </main>
         <footer className={styles.footer}>
-          <Text size={200}>Your campus, connected.</Text>
+          <span>
+            <Text size={200}>Your campus, connected. </Text>
+            <Link to="/privacy">Privacy</Link>
+            <Text size={200}> · </Text>
+            <Link to="/terms">Terms</Link>
+          </span>
           <span className={styles.demoLabel}>
             {authMode === 'demo'
               ? <FlaskConical size={13} aria-hidden="true" />

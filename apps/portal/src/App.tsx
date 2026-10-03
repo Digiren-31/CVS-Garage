@@ -22,6 +22,7 @@ import { AppShell } from './components/AppShell';
 import { AuthGate } from './components/AuthGate';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { PrivacyPage, TermsPage } from './pages/LegalPage';
 
 const DashboardPage = lazy(async () => ({
   default: (await import('./pages/DashboardPage')).DashboardPage
@@ -287,6 +288,8 @@ export function App() {
                   : <Navigate to={api.auth.consumeReturnTo()} replace />
               }
             />
+            <Route path="privacy" element={<PrivacyPage />} />
+            <Route path="terms" element={<TermsPage />} />
             <Route
               path="projects"
               element={<ProtectedService key={`projects-${dataVersion}`} component={ProjectsPage} {...protectedProps} />}
